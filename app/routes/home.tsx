@@ -1,13 +1,16 @@
-import type { Route } from "./+types/home";
-import { Welcome } from "../welcome/welcome";
-
-export function meta({}: Route.MetaArgs) {
+export function meta() {
   return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
+    { title: "Amirali BG" },
+    { name: "description", content: "Amirali BG's personal website." },
   ];
 }
 
+import PcScene from "../components/three/PcScene";
+
 export default function Home() {
-  return <Welcome />;
+  return (
+    <div className="relative min-h-screen bg-[#0b0b0d] text-white overflow-hidden">
+      <PcScene />
+    </div>
+  );
 }
