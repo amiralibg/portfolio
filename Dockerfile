@@ -1,14 +1,16 @@
+# Multi-stage build for optimized production image
+
 # Stage 1: Install all dependencies for building
 FROM node:20-alpine AS development-dependencies-env
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 # Stage 2: Install only production dependencies
 FROM node:20-alpine AS production-dependencies-env
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
 
 # Stage 3: Build the application
 FROM node:20-alpine AS build-env
