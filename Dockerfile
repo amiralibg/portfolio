@@ -11,6 +11,8 @@ RUN npm install
 # Copy source code
 COPY . .
 
+RUN npm rebuild rollup -f
+
 # Build application
 RUN npm run build
 
