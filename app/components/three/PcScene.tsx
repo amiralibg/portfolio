@@ -1,6 +1,30 @@
 import { useRef, Suspense, useEffect, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Html } from "@react-three/drei";
+import { OrbitControls, useGLTF, Html, useProgress } from "@react-three/drei";
+
+function LoaderOverlay() {
+  const { active, progress, errors, item, loaded, total } = useProgress();
+
+  return (
+    <Html center style={{ pointerEvents: 'none', zIndex: 9999 }}>
+      <div style={{
+        minWidth: 220,
+        padding: 18,
+        borderRadius: 12,
+        background: 'rgba(17,17,17,0.85)',
+        color: '#fff',
+        textAlign: 'center',
+        boxShadow: '0 6px 30px rgba(0,0,0,0.6)'
+      }}>
+        <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 8 }}>Loading Experience</div>
+        <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 6, overflow: 'hidden' }}>
+          <div style={{ width: `${Math.round(progress)}%`, height: '100%', background: 'linear-gradient(90deg,#7c3aed,#06b6d4)' }} />
+        </div>
+        <div style={{ fontSize: 12, marginTop: 8, opacity: 0.75 }}>{Math.round(progress)}%</div>
+      </div>
+    </Html>
+  );
+}
 import * as THREE from "three";
 import PortfolioScreen from "./PortfolioScreen";
 
@@ -120,15 +144,12 @@ function PcModel({ showScreen }: { showScreen: boolean }) {
     if (showScreen) {
       const timer = setTimeout(() => {
         setContentReady(true);
-        console.log("Screen content is now ready to display, contentReady:", true);
       }, 200);
       return () => clearTimeout(timer);
     } else {
       setContentReady(false);
     }
   }, [showScreen]);
-
-  console.log("PcModel render - showScreen:", showScreen, "contentReady:", contentReady);
 
   return (
     <group ref={groupRef} dispose={null} scale={scale} position={position}>
@@ -210,7 +231,6 @@ export default function PcScene() {
 
   const handleAnimationComplete = (complete: boolean) => {
     setAnimationComplete(complete);
-    console.log("Camera animation complete, showing screen content.");
   };
 
   return (
@@ -227,7 +247,8 @@ export default function PcScene() {
         gl={{ antialias: true, alpha: true }}
         style={{ background: "transparent" }}
       >
-        <Suspense fallback={null}>
+        {/* Show a simple loader inside the Canvas while assets load */}
+        <Suspense fallback={<LoaderOverlay />}>
           {/* Camera animation */}
           <CameraAnimation onComplete={handleAnimationComplete} />
 

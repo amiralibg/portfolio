@@ -5,6 +5,55 @@ import resumeData from "~/data/resume.json";
 // This component will be rendered inside the 3D MacBook screen (530x450px)
 export default function PortfolioScreen() {
   const [currentSection, setCurrentSection] = useState(0);
+  // Pointer swipe tracking
+  let startX = 0;
+  let startY = 0;
+  let isPointerDown = false;
+  let didMove = false;
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    isPointerDown = true;
+    didMove = false;
+    startX = e.clientX;
+    startY = e.clientY;
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!isPointerDown) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    // If vertical movement is more significant, cancel swipe detection so scrolling still works
+    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
+      isPointerDown = false;
+      return;
+    }
+
+    if (Math.abs(dx) > 10) {
+      didMove = true;
+    }
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    if (!didMove) {
+      isPointerDown = false;
+      return;
+    }
+
+    const dx = e.clientX - startX;
+    const threshold = 60; // pixels required to consider a swipe
+
+    if (dx < -threshold) {
+      // swipe left -> next
+      setCurrentSection((s) => Math.min(s + 1, sections.length - 1));
+    } else if (dx > threshold) {
+      // swipe right -> prev
+      setCurrentSection((s) => Math.max(s - 1, 0));
+    }
+
+    isPointerDown = false;
+    didMove = false;
+  };
 
   const sections = [
     {
@@ -252,7 +301,13 @@ export default function PortfolioScreen() {
 
   return (
     <LazyMotion features={domAnimation}>
-      <div className="w-full h-full bg-gradient-to-br from-gray-950 via-slate-900 to-blue-950 text-white font-sans relative overflow-hidden p-4">
+      <div
+        className="w-full h-full bg-gradient-to-br from-gray-950 via-slate-900 to-blue-950 text-white font-sans relative overflow-hidden p-4"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
         {/* Navigation */}
         <nav className="absolute top-5 right-5 flex gap-1.5 z-10">
           {sections.map((section, index) => (
