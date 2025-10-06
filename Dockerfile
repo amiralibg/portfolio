@@ -1,13 +1,14 @@
-# Use regular node (not alpine) for better compatibility
+# Use regular node for building (better npm ci support)
 FROM node:20 AS development-dependencies-env
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# Use npm install instead of npm ci to properly install optional deps
+RUN npm install
 
 FROM node:20 AS production-dependencies-env
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --only=production && npm cache clean --force
 
 FROM node:20 AS build-env
 WORKDIR /app
