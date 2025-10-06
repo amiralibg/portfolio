@@ -1,0 +1,132 @@
+{
+  "name": "Amirali Beigi",
+  "title": "Software Engineer - Front-End Developer",
+  "contact": {
+    "email": "amiralibgi.dev@gmail.com",
+    "phone": "+989334099988",
+    "linkedin": "https://linkedin.com/in/amiralibeigi",
+    "github": "https://github.com/amiralibg"
+  },
+  "summary": "Front-End Developer with 5+ years of experience specializing in React.js, Next.js, and modern JavaScript frameworks. Proficient in turning complex designs into responsive, user-friendly web and mobile applications. Skilled in leading development teams and collaborating cross-functionally to deliver scalable, high-performance products. Continuously learning new technologies to enhance and optimize development processes.",
+  "skills": {
+    "languages": ["JavaScript", "TypeScript", "HTML", "CSS", "Dart", "Kotlin", "Swift"],
+    "frameworks": ["React.js", "Next.js", "Vue.js", "Nuxt.js", "React Native", "Flutter", "Express.js", "Node.js"],
+    "tools": ["Git", "Docker", "Jest", "Webpack", "Storybook"],
+    "stateManagement": ["Zustand", "Redux"],
+    "styling": ["TailwindCSS", "Shadcn", "Material UI", "SCSS"]
+  },
+  "experience": [
+    {
+      "position": "Senior Front-End Developer",
+      "company": "Landin",
+      "period": "2022 - Present",
+      "type": "Full-time",
+      "description": "Landin is a landing page builder that enables anyone to have a professional, personalized website. Over 1 million users worldwide use Landin to build their online identities.",
+      "responsibilities": [
+        "Led and mentored a team of 3 front-end developers in the agile development lifecycle, successfully launching features that boosted user engagement by 30%.",
+        "Architected and independently developed over 20+ front-end features and templates between Landin builder and templates.",
+        "Refined communication processes between product and development teams for more productive sprints."
+      ]
+    },
+    {
+      "position": "Co-founder & CTO",
+      "company": "Namaki",
+      "period": "2022 - 2023",
+      "type": "Part-time",
+      "description": "Namaki is a green initiative app that lets users request agents to collect their household waste, encouraging recycling and environmental protection.",
+      "responsibilities": [
+        "Designed the database for the MVP platform.",
+        "Built the MVP API, app, and admin panel.",
+        "Developed a roadmap for future updates based on tester feedback."
+      ],
+      "technologies": ["React Native", "Next.js", "TailwindCSS", "OpenStreetMap", "Express", "MongoDB"]
+    },
+    {
+      "position": "Senior Front-End Developer",
+      "company": "Doreddy",
+      "period": "2020 - 2021",
+      "type": "Full-time",
+      "description": "Doreddy was created during the COVID pandemic to help students and teachers connect via real-time video chat and interactive learning tools.",
+      "responsibilities": [
+        "Designed and engineered an intuitive UI incorporating user feedback from students and teachers.",
+        "Developed 80% of the front-end app, including WebRTC real-time video communication integration."
+      ],
+      "technologies": ["React.js", "SCSS", "Material UI", "Express", "MongoDB", "Socket.io", "WebRTC"]
+    },
+    {
+      "position": "Front-End Developer",
+      "company": "Jcoders (Cinemac)",
+      "period": "2021 - 2022",
+      "type": "Full-time",
+      "description": "Cinemac was an Iranian streaming platform similar to Netflix, providing video-on-demand to over 10,000 users.",
+      "responsibilities": [
+        "Built the front-end of the Cinemac platform serving over 10,000 users.",
+        "Enhanced video player usability with key bindings and subtitle management.",
+        "Developed a version optimized for older TV models using Webpack and Babel."
+      ],
+      "technologies": ["Nuxt.js", "CSS", "Webpack", "Babel", "nuxt/auth", "Video.js"]
+    }
+  ],
+  "freelanceProjects": [
+    {
+      "title": "Front-End Engineer - UrPlaza",
+      "year": "2024",
+      "description": "A data processing platform inspired by shopping centers, designed to help small businesses and self-employed individuals grow through B2B and B2C tools.",
+      "responsibilities": [
+        "Developed the complete front-end from scratch.",
+        "Collaborated closely with designers and backend developers for optimal outcomes."
+      ],
+      "technologies": ["Next.js", "TailwindCSS", "Shadcn", "Zustand"]
+    },
+    {
+      "title": "Front-End Developer - Dyar",
+      "year": "2022",
+      "description": "A real estate platform for managing property listings and collaboration between agents.",
+      "responsibilities": [
+        "Implemented a live editor for property design and publication.",
+        "Developed the entire front-end for the platform."
+      ],
+      "technologies": ["Next.js", "Material UI", "CSS", "Redux", "Husky", "ESLint", "google-map-react"]
+    },
+    {
+      "title": "Front-End Developer - Importizer",
+      "year": "2020",
+      "description": "An app for importing Amazon products into Shopify stores and earning affiliate commissions.",
+      "responsibilities": [
+        "Coded the front-end using HTML, CSS, and jQuery.",
+        "Integrated front-end with Laravel Livewire backend."
+      ],
+      "technologies": ["HTML", "CSS", "jQuery", "Laravel Livewire"]
+    },
+    {
+      "title": "Mobile Developer - Zirooh",
+      "year": "2020",
+      "description": "A Flutter app helping users locate pet shops and veterinarians with map and in-app calling features.",
+      "technologies": [
+        "Flutter",
+        "Http",
+        "mvc_pattern",
+        "google_maps_flutter",
+        "flutter_staggered_grid_view",
+        "firebase_messaging",
+        "mask_text_input_formatter"
+      ]
+    },
+    {
+      "title": "Mobile Developer - Wherer",
+      "year": "2020",
+      "description": "A Flutter app for businesses to promote events and locations with Google Maps and discovery features.",
+      "technologies": [
+        "Flutter",
+        "Get",
+        "Dio",
+        "google_maps_flutter",
+        "syncfusion_charts",
+        "sliders",
+        "datepicker",
+        "mask_text_input_formatter",
+        "lazy_load_scrollview"
+      ]
+    }
+  ]
+}

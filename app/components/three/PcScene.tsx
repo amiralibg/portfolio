@@ -61,20 +61,77 @@ function CameraAnimation({
 }
 
 /**
- * Simple MacBook 3D model component - default model only
+ * Hook to get responsive scale and position based on viewport size
+ */
+function useResponsiveModelSettings() {
+  const [settings, setSettings] = useState({
+    scale: 0.95,
+    position: [0, -2.5, 0] as [number, number, number],
+  });
+
+  useEffect(() => {
+    const updateSettings = () => {
+      const width = window.innerWidth;
+
+      // Mobile: smaller scale, higher position
+      if (width < 768) {
+        setSettings({
+          scale: 0.7,
+          position: [0, -1.5, 0],
+        });
+      }
+      // Tablet: medium scale
+      else if (width < 1024) {
+        setSettings({
+          scale: 0.7,
+          position: [0, -2, 0],
+        });
+      }
+      // Desktop: original scale
+      else {
+        setSettings({
+          scale: 0.95,
+          position: [0, -2.5, 0],
+        });
+      }
+    };
+
+    updateSettings();
+    window.addEventListener("resize", updateSettings);
+    return () => window.removeEventListener("resize", updateSettings);
+  }, []);
+
+  return settings;
+}
+
+/**
+ * 3D Model component with Portofolio screen overlay
  */
 function PcModel({ showScreen }: { showScreen: boolean }) {
   const groupRef = useRef<THREE.Group>(null);
+  const { scale, position } = useResponsiveModelSettings();
+  const [contentReady, setContentReady] = useState(false);
 
   // Load GLB model
-  const { nodes, materials } = useGLTF(
-    "/app/assets/pc/source/zombie_computer.glb"
-  );
+  const { nodes, materials } = useGLTF("/models/zombie_computer.glb");
 
-  console.log(nodes, materials);
+  // Ensure content renders after showScreen becomes true
+  useEffect(() => {
+    if (showScreen) {
+      const timer = setTimeout(() => {
+        setContentReady(true);
+        console.log("Screen content is now ready to display, contentReady:", true);
+      }, 200);
+      return () => clearTimeout(timer);
+    } else {
+      setContentReady(false);
+    }
+  }, [showScreen]);
+
+  console.log("PcModel render - showScreen:", showScreen, "contentReady:", contentReady);
 
   return (
-    <group ref={groupRef} dispose={null} scale={0.7} position={[0, -1.5, 0]}>
+    <group ref={groupRef} dispose={null} scale={scale} position={position}>
       {Object.entries(nodes).map(([nodeName, node]: [string, any]) => {
         if (node.isMesh) {
           const isScreen = node.material?.name === "computer_screen";
@@ -88,10 +145,10 @@ function PcModel({ showScreen }: { showScreen: boolean }) {
               rotation={node.rotation}
               scale={node.scale}
             >
-              {isScreen && (
+              {isScreen && showScreen && (
                 <Html
                   transform
-                  occlude
+                  occlude={false}
                   sprite={false}
                   position={[0.03, 0, 0]}
                   rotation={[0, -1.57, 0]}
@@ -100,31 +157,31 @@ function PcModel({ showScreen }: { showScreen: boolean }) {
                     width: 530,
                     height: 450,
                   }}
+                  zIndexRange={[100, 0]}
                 >
-                  {showScreen && (
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      background: "#111",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      visibility: contentReady ? "visible" : "hidden",
+                      opacity: contentReady ? 1 : 0,
+                      transition: "opacity 0.5s ease-in-out",
+                    }}
+                    className="crt-screen scanlines"
+                  >
                     <div
                       style={{
                         width: "100%",
                         height: "100%",
-                        background: "#111",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
                       }}
-                      className = "crt-screen scanlines"
                     >
-                      <div
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          opacity: 1,
-                          animation: "fadeIn 0.5s ease-in-out",
-                        }}
-                      >
-                        {typeof window !== 'undefined' ? <PortfolioScreen /> : <div style={{color: 'white', fontSize: '24px'}}>Loading...</div>}
-                      </div>
+                      <PortfolioScreen />
                     </div>
-                  )}
+                  </div>
                 </Html>
               )}
             </mesh>
@@ -153,6 +210,7 @@ export default function PcScene() {
 
   const handleAnimationComplete = (complete: boolean) => {
     setAnimationComplete(complete);
+    console.log("Camera animation complete, showing screen content.");
   };
 
   return (
@@ -194,4 +252,4 @@ export default function PcScene() {
 }
 
 // Preload the GLTF model
-useGLTF.preload("/app/assets/pc/source/zombie_computer.glb");
+useGLTF.preload("/models/zombie_computer.glb");
