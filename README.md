@@ -1,4 +1,4 @@
-# Amirali — 3D Portfolio
+# Amirali — Portfolio
 
 An interactive portfolio: a 3D MacBook Pro with a real, working resume website
 rendered on its screen.
