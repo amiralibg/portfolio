@@ -130,7 +130,6 @@ export default function App() {
 
       {!zoomed && (
         <div className="hint">
-          <span className="hint-dot" />
           {isMobile ? 'tap the screen to read the resume' : 'click the screen to read the resume'}
         </div>
       )}
@@ -143,9 +142,6 @@ export default function App() {
 
       {zoomed && isMobile && (
         <div className={`mobile-overlay${overlayClosing ? ' closing' : ''}`}>
-          <button className="overlay-close" onClick={closeResume} aria-label="Close">
-            ✕
-          </button>
           <ResumeScreen zoomed theme={theme} onToggleTheme={toggleTheme} variant="overlay" />
         </div>
       )}

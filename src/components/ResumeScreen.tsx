@@ -136,7 +136,7 @@ export function ResumeScreen({ zoomed, theme, onToggleTheme, variant = 'screen' 
 
             <div className="window-footer">
               {variant === 'overlay'
-                ? 'double-tap empty space or ✕ to close'
+                ? 'double-tap empty space to close'
                 : zoomed
                   ? 'use ← → arrow keys to browse · esc or double-click outside to zoom out'
                   : 'click the screen to zoom in'}
