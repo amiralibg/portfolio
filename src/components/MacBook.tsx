@@ -8,17 +8,40 @@ import type { RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Html, useGLTF } from '@react-three/drei'
 import { ResumeScreen } from './ResumeScreen'
+import type { SectionId } from './sections'
 
 interface MacBookProps {
   ready: boolean
-  zoomed: boolean
+  /** Screen is engaged: stop the idle float, drop the click-to-zoom guard. */
+  active: boolean
   theme: 'dark' | 'light'
   onToggleTheme: () => void
   screenRef: RefObject<THREE.Group | null>
-  onScreenClick: () => void
+  onScreenClick?: () => void
+  /** Scroll mode: freeze the float as soon as the zoom begins. */
+  scrollMode?: boolean
+  zoomProgressRef?: RefObject<number>
+  section?: SectionId
+  onSectionChange?: (id: SectionId) => void
+  bodyRef?: RefObject<HTMLDivElement | null>
+  /** Freeze the idle float and snap transforms for prefers-reduced-motion. */
+  reducedMotion?: boolean
 }
 
-export function MacBook({ ready, zoomed, theme, onToggleTheme, screenRef, onScreenClick }: MacBookProps) {
+export function MacBook({
+  ready,
+  active,
+  theme,
+  onToggleTheme,
+  screenRef,
+  onScreenClick,
+  scrollMode,
+  zoomProgressRef,
+  section,
+  onSectionChange,
+  bodyRef,
+  reducedMotion,
+}: MacBookProps) {
   const group = useRef<THREE.Group>(null)
   const screenMesh = useRef<THREE.Mesh>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -36,16 +59,26 @@ export function MacBook({ ready, zoomed, theme, onToggleTheme, screenRef, onScre
     const g = group.current
     if (!g) return
     const t = state.clock.getElapsedTime()
+    // In scroll mode the float freezes the instant the zoom starts moving.
+    // Reduced motion freezes it outright (treated as always engaged).
+    const engaged =
+      reducedMotion || (scrollMode && zoomProgressRef ? zoomProgressRef.current > 0.02 : active)
     // Hold below frame until the loader reveals the scene, then rise in.
     // Gentle float while browsing; freeze in place when zoomed into the screen.
-    const rx = !ready || zoomed ? 0 : Math.cos(t / 10) / 14
-    const ry = !ready ? -0.55 : zoomed ? 0 : Math.sin(t / 10) / 7
-    const rz = !ready || zoomed ? 0 : Math.sin(t / 10) / 14
-    const py = !ready ? -28 : zoomed ? 0 : Math.sin(t) * 0.6
-    g.rotation.x = THREE.MathUtils.damp(g.rotation.x, rx, 4, delta)
-    g.rotation.y = THREE.MathUtils.damp(g.rotation.y, ry, 4, delta)
-    g.rotation.z = THREE.MathUtils.damp(g.rotation.z, rz, 4, delta)
-    g.position.y = THREE.MathUtils.damp(g.position.y, py, 4, delta)
+    const rx = !ready || engaged ? 0 : Math.cos(t / 10) / 14
+    const ry = !ready ? -0.55 : engaged ? 0 : Math.sin(t / 10) / 7
+    const rz = !ready || engaged ? 0 : Math.sin(t / 10) / 14
+    const py = !ready ? -28 : engaged ? 0 : Math.sin(t) * 0.6
+    if (reducedMotion) {
+      // Snap to pose — no glide.
+      g.rotation.set(rx, ry, rz)
+      g.position.y = py
+    } else {
+      g.rotation.x = THREE.MathUtils.damp(g.rotation.x, rx, 4, delta)
+      g.rotation.y = THREE.MathUtils.damp(g.rotation.y, ry, 4, delta)
+      g.rotation.z = THREE.MathUtils.damp(g.rotation.z, rz, 4, delta)
+      g.position.y = THREE.MathUtils.damp(g.position.y, py, 4, delta)
+    }
   })
 
   return (
@@ -56,7 +89,7 @@ export function MacBook({ ready, zoomed, theme, onToggleTheme, screenRef, onScre
       rotation={[0, -0.55, 0]}
       onPointerOver={(e) => {
         e.stopPropagation()
-        if (!zoomed) setHovered(true)
+        if (!active && onScreenClick) setHovered(true)
       }}
       onPointerOut={() => setHovered(false)}
     >
@@ -84,7 +117,7 @@ export function MacBook({ ready, zoomed, theme, onToggleTheme, screenRef, onScre
         rotation={[Math.PI / 2, 0, 0]}
         onClick={(e) => {
           e.stopPropagation()
-          if (!zoomed) onScreenClick()
+          if (!active) onScreenClick?.()
         }}
       >
         <meshBasicMaterial color="#050505" />
@@ -98,8 +131,16 @@ export function MacBook({ ready, zoomed, theme, onToggleTheme, screenRef, onScre
       <group ref={screenRef} position={[0, 11.78, -16.86]} rotation-x={-0.349}>
         <Html className="screen-html" transform occlude scale={1.03} zIndexRange={[10, 0]}>
           <div className="screen-content" onPointerDown={(e) => e.stopPropagation()}>
-            <ResumeScreen zoomed={zoomed} theme={theme} onToggleTheme={onToggleTheme} />
-            {!zoomed && (
+            <ResumeScreen
+              zoomed={active}
+              theme={theme}
+              onToggleTheme={onToggleTheme}
+              scrollMode={scrollMode}
+              section={section}
+              onSectionChange={onSectionChange}
+              bodyRef={bodyRef}
+            />
+            {!active && onScreenClick && (
               <div className="screen-clickguard" onClick={onScreenClick} title="Click to zoom in" />
             )}
           </div>

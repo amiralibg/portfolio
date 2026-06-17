@@ -456,6 +456,156 @@ body {
   margin-left: 5px;
 }
 
+/* ---------- interactive / scroll mode switch ---------- */
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--pill-bg);
+  backdrop-filter: blur(10px);
+}
+
+.mode-switch button {
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.mode-switch button:hover {
+  color: var(--ink);
+}
+
+.mode-switch button.active {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+/* ---------- scroll-mode progress rail ---------- */
+
+.scroll-rail {
+  position: fixed;
+  top: 50%;
+  right: 26px;
+  transform: translateY(-50%);
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: fade-up 0.6s ease 0.3s both;
+}
+
+.rail-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 5px 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.rail-item span {
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(6px);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease,
+    color 0.25s ease;
+}
+
+.rail-item i {
+  width: 22px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--line);
+  transition:
+    background 0.25s ease,
+    width 0.25s ease;
+}
+
+.rail-item:hover span,
+.rail-item.active span {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.rail-item:hover i {
+  background: var(--muted);
+}
+
+.rail-item.active i {
+  width: 34px;
+  background: var(--accent);
+}
+
+.rail-item.active span {
+  color: var(--ink);
+}
+
+/* ---------- scroll-to-explore cue ---------- */
+
+.hint.scroll-cue {
+  gap: 11px;
+}
+
+.cue-chevrons {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  height: 13px;
+  animation: cue-bounce 1.6s ease-in-out infinite;
+}
+
+.cue-chevrons span {
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.cue-chevrons span:nth-child(2) {
+  margin-top: -3px;
+  opacity: 0.45;
+}
+
+@keyframes cue-bounce {
+  0%,
+  100% {
+    transform: translateY(-2px);
+  }
+  50% {
+    transform: translateY(2px);
+  }
+}
+
 /* ---------- the website rendered on the MacBook screen ---------- */
 /* 1336 x 864 = 4x the screen plane, scaled down in 3D for crisp text */
 
@@ -1112,38 +1262,59 @@ body {
   z-index: 40;
   background: var(--scr-bg);
   overflow: hidden;
-  animation: modal-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
-  will-change: transform;
+  transform-origin: center;
+  animation: modal-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
 }
 
+/* Zoom + scale open: the resume scales up out of the laptop and fades in. */
 @keyframes modal-in {
   from {
-    transform: translateY(100%) scale(0.94);
-    border-radius: 28px;
+    opacity: 0;
+    transform: scale(0.8);
+    border-radius: 36px;
   }
   to {
-    transform: translateY(0) scale(1);
+    opacity: 1;
+    transform: scale(1);
     border-radius: 0;
   }
 }
 
 .mobile-overlay.closing {
-  animation: modal-out 0.42s cubic-bezier(0.7, 0, 0.84, 0) both;
+  animation: modal-out 0.4s cubic-bezier(0.7, 0, 0.84, 0) both;
 }
 
 @keyframes modal-out {
   from {
-    transform: translateY(0) scale(1);
+    opacity: 1;
+    transform: scale(1);
     border-radius: 0;
   }
   to {
-    transform: translateY(104%) scale(0.94);
-    border-radius: 28px;
+    opacity: 0;
+    transform: scale(0.8);
+    border-radius: 36px;
   }
 }
 
 .mobile-overlay .window {
-  animation: modal-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+  animation: modal-fade 0.5s ease 0.1s both;
+}
+
+/* Mobile scroll mode: the scale-open is scrubbed inline by the scroll progress
+   (see applyIntro), so no CSS entrance animation here. */
+.mobile-overlay.scroll-scrub {
+  opacity: 0;
+  transform: scale(0.82);
+  border-radius: 34px;
+  pointer-events: none;
+  animation: none;
+}
+
+.mobile-overlay.scroll-scrub .window,
+.mobile-overlay.scroll-scrub .menubar {
+  animation: none;
 }
 
 .mobile-overlay .menubar {
@@ -1300,5 +1471,28 @@ body {
   .hint {
     bottom: 60px;
     font-size: 12px;
+  }
+
+  .top-actions {
+    gap: 8px;
+  }
+
+  .mode-switch button {
+    padding: 5px 11px;
+    font-size: 11px;
+  }
+}
+
+/* Honour prefers-reduced-motion: cut the looping/entrance animations and
+   transitions. The 3D camera + laptop snap to pose in JS (see CameraRig /
+   MacBook reducedMotion); this covers the CSS-driven motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
   }
 }

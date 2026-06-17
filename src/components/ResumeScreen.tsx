@@ -1,19 +1,12 @@
-import { useRef, useState, useEffect } from 'react'
+import { useCallback, useRef, useState, useEffect } from 'react'
+import type { RefObject } from 'react'
 import { resume } from '../data/resume'
+import { SECTIONS } from './sections'
+import type { SectionId } from './sections'
 import wallpaper from '../assets/background.jpeg'
 import resumePdf from '../assets/Amirali Beigi - Resume.pdf'
 
 const PDF_FILENAME = `${resume.name} - Resume.pdf`
-
-const SECTIONS = [
-  { id: 'about', label: 'about' },
-  { id: 'experience', label: 'experience' },
-  { id: 'works', label: 'works' },
-  { id: 'oss', label: 'open source' },
-  { id: 'skills', label: 'skills' },
-  { id: 'contact', label: 'contact' },
-] as const
-type SectionId = (typeof SECTIONS)[number]['id']
 
 type WinState = 'open' | 'closing' | 'closed' | 'minimizing' | 'minimized' | 'opening'
 
@@ -22,10 +15,31 @@ interface ResumeScreenProps {
   theme: 'dark' | 'light'
   onToggleTheme: () => void
   variant?: 'screen' | 'overlay'
+  /** Tailors the footer hint to the guided-scroll interaction. */
+  scrollMode?: boolean
+  /** Controlled active tab. Falls back to internal state when omitted. */
+  section?: SectionId
+  onSectionChange?: (id: SectionId) => void
+  /** Forwarded to the scrollable body so scroll mode can drive it. */
+  bodyRef?: RefObject<HTMLDivElement | null>
 }
 
-export function ResumeScreen({ zoomed, theme, onToggleTheme, variant = 'screen' }: ResumeScreenProps) {
-  const [section, setSection] = useState<SectionId>('about')
+export function ResumeScreen({
+  zoomed,
+  theme,
+  onToggleTheme,
+  variant = 'screen',
+  scrollMode = false,
+  section: controlledSection,
+  onSectionChange,
+  bodyRef,
+}: ResumeScreenProps) {
+  const [internalSection, setInternalSection] = useState<SectionId>('about')
+  const section = controlledSection ?? internalSection
+  const setSection = useCallback(
+    (id: SectionId) => (onSectionChange ?? setInternalSection)(id),
+    [onSectionChange],
+  )
   const [time, setTime] = useState(() => formatTime())
   const [winState, setWinState] = useState<WinState>('open')
   const [maximized, setMaximized] = useState(false)
@@ -63,7 +77,7 @@ export function ResumeScreen({ zoomed, theme, onToggleTheme, variant = 'screen' 
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [zoomed, section])
+  }, [zoomed, section, setSection])
 
   return (
     <div className="screen" style={{ backgroundImage: `url(${wallpaper})` }}>
@@ -92,7 +106,7 @@ export function ResumeScreen({ zoomed, theme, onToggleTheme, variant = 'screen' 
           title="Download resume as PDF"
         >
           <PdfIcon />
-          <span>resume.pdf</span>
+          <span>download resume.pdf</span>
         </a>
 
         {winState !== 'closed' && (
@@ -125,7 +139,7 @@ export function ResumeScreen({ zoomed, theme, onToggleTheme, variant = 'screen' 
               </nav>
             </div>
 
-            <div className="window-body">
+            <div className="window-body" ref={bodyRef}>
               {section === 'about' && <About />}
               {section === 'experience' && <Experience />}
               {section === 'works' && <Works />}
@@ -137,9 +151,13 @@ export function ResumeScreen({ zoomed, theme, onToggleTheme, variant = 'screen' 
             <div className="window-footer">
               {variant === 'overlay'
                 ? 'double-tap empty space to close'
-                : zoomed
-                  ? 'use ← → arrow keys to browse · esc or double-click outside to zoom out'
-                  : 'click the screen to zoom in'}
+                : scrollMode
+                  ? zoomed
+                    ? 'scroll to browse · scroll up or esc to zoom out'
+                    : 'scroll to zoom in'
+                  : zoomed
+                    ? 'use ← → arrow keys to browse · esc or double-click outside to zoom out'
+                    : 'click the screen to zoom in'}
             </div>
           </div>
         )}
