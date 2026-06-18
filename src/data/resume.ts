@@ -147,7 +147,7 @@ export const resume = {
     {
       name: 'AI & Agentic Systems',
       role: 'Engineer',
-      year: '2024 — Present',
+      year: '2025 — Present',
       description:
         'AI-integrated chat interfaces with streaming responses and real-time UX ' +
         'patterns, MCP-based workflows, and conversational UI systems optimized for ' +
