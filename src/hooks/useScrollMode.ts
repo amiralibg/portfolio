@@ -27,14 +27,33 @@ interface ScrollModeOptions {
 // inertial trackpad flings from skipping past several tabs at once.
 const ZOOM_PER_PX = 1 / 750
 const SWITCH_COOLDOWN = 420
+// Exponential smoothing rate (per second) easing current values toward their
+// scroll-driven targets — this is what turns stepped wheel notches into glide.
+const EASE = 12
+// Touch inertia: decay rate for fling velocity and the floor where it stops.
+const FLING_DECAY = 2.8
+const FLING_MIN = 25 // px/s
+// A single wheel event can't contribute more than this many pixels (tames
+// free-spinning mouse wheels without dulling trackpads).
+const MAX_EVENT_DELTA = 260
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+
+// Normalize wheel deltas to pixels across deltaMode variants (lines / pages).
+const wheelDeltaPx = (e: WheelEvent) => {
+  const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * window.innerHeight : e.deltaY
+  return clamp(dy, -MAX_EVENT_DELTA, MAX_EVENT_DELTA)
+}
 
 /**
  * Guided "scrollytelling" controller. Hijacks wheel/touch/keys so a single
  * scroll gesture first zooms the camera into the screen, then walks the resume
  * tabs — scrolling within a tab until it bottoms out, then advancing to the
  * next (and the reverse on the way back up).
+ *
+ * Input events only move *targets*; a persistent rAF loop eases the actual
+ * zoom progress and tab scrollTop toward them, so discrete wheel notches and
+ * key presses render as continuous, frame-rate-independent glide.
  */
 export function useScrollMode({
   enabled,
@@ -51,16 +70,40 @@ export function useScrollMode({
 }: ScrollModeOptions) {
   useEffect(() => {
     if (!enabled) return
+    let raf = 0
     let lockUntil = 0
+    let lastTime = performance.now()
 
-    // Set the intro progress (camera zoom / modal scrub) and report it.
+    // Animated values: current glides toward target each frame.
+    let zoomCurrent = clamp(zoomProgressRef.current, 0, 1)
+    let zoomTarget = zoomCurrent
+    let lastWrittenZoom = zoomProgressRef.current
+    let scrollCurrent = 0
+    let scrollTarget = 0
+    // Re-read body.scrollTop before animating (after tab changes / re-engage).
+    let syncScroll = true
+
+    // Touch state: live velocity while dragging, decaying fling after release.
+    let touchY: number | null = null
+    let touchVel = 0
+    let lastTouchTime = 0
+    let flingVel = 0
+
     const setIntro = (value: number) => {
       const v = clamp(value, 0, 1)
       zoomProgressRef.current = v
+      lastWrittenZoom = v
       onIntroProgress?.(v)
       return v
     }
 
+    const engage = () => {
+      setEngaged(true)
+      syncScroll = true
+      lockUntil = performance.now() + SWITCH_COOLDOWN
+    }
+
+    // Consume a scroll delta by moving the appropriate target.
     const advance = (dy: number) => {
       if (performance.now() < lockUntil) return
 
@@ -69,20 +112,16 @@ export function useScrollMode({
         if (snap) {
           // Reduced motion: a single gesture opens or closes instantly.
           if (dy > 0) {
+            zoomCurrent = zoomTarget = 1
             setIntro(1)
-            setEngaged(true)
-            lockUntil = performance.now() + SWITCH_COOLDOWN
+            engage()
           } else if (dy < 0) {
+            zoomCurrent = zoomTarget = 0
             setIntro(0)
           }
           return
         }
-        const z = setIntro(zoomProgressRef.current + dy * ZOOM_PER_PX)
-        if (z >= 1) {
-          setEngaged(true)
-          // Hold a beat on the first tab so a fast flick can't blow past it.
-          lockUntil = performance.now() + SWITCH_COOLDOWN
-        }
+        zoomTarget = clamp(zoomTarget + dy * ZOOM_PER_PX, 0, 1)
         return
       }
 
@@ -93,34 +132,98 @@ export function useScrollMode({
       const i = sectionIndexRef.current
 
       if (dy > 0) {
-        if (body.scrollTop < max - 1) {
-          body.scrollTop = Math.min(max, body.scrollTop + dy)
-        } else if (i < sectionCount - 1) {
+        if (scrollTarget < max - 1) {
+          scrollTarget = Math.min(max, scrollTarget + dy)
+        } else if (scrollCurrent >= max - 1 && i < sectionCount - 1) {
+          flingVel = 0
           navigate(i + 1, 'top')
+          syncScroll = true
           lockUntil = performance.now() + SWITCH_COOLDOWN
         }
       } else if (dy < 0) {
-        if (body.scrollTop > 1) {
-          body.scrollTop = Math.max(0, body.scrollTop + dy)
-        } else if (i > 0) {
-          navigate(i - 1, 'bottom')
-          lockUntil = performance.now() + SWITCH_COOLDOWN
-        } else {
-          // Past the first tab's top → unlock and scrub the intro back out.
-          setEngaged(false)
-          setIntro(snap ? 0 : 1 + dy * ZOOM_PER_PX)
+        if (scrollTarget > 1) {
+          scrollTarget = Math.max(0, scrollTarget + dy)
+        } else if (scrollCurrent <= 1) {
+          if (i > 0) {
+            flingVel = 0
+            navigate(i - 1, 'bottom')
+            syncScroll = true
+            lockUntil = performance.now() + SWITCH_COOLDOWN
+          } else {
+            // Past the first tab's top → unlock and scrub the intro back out.
+            setEngaged(false)
+            flingVel = 0
+            zoomCurrent = 1
+            zoomTarget = snap ? 0 : clamp(1 + dy * ZOOM_PER_PX, 0, 1)
+            if (snap) {
+              zoomCurrent = 0
+              setIntro(0)
+            }
+            lockUntil = performance.now() + 140
+          }
+        }
+      }
+    }
+
+    const tick = (now: number) => {
+      raf = requestAnimationFrame(tick)
+      const dt = Math.min((now - lastTime) / 1000, 0.05)
+      lastTime = now
+      const k = snap ? 1 : 1 - Math.exp(-EASE * dt)
+
+      // External writes (rail jumpTo / exitScroll / mode change) win: resync.
+      if (zoomProgressRef.current !== lastWrittenZoom) {
+        zoomCurrent = zoomTarget = clamp(zoomProgressRef.current, 0, 1)
+        lastWrittenZoom = zoomProgressRef.current
+        syncScroll = true
+      }
+
+      // Touch inertia: feed the decaying fling velocity back through advance.
+      if (touchY == null && Math.abs(flingVel) > FLING_MIN) {
+        advance(flingVel * dt)
+        flingVel *= Math.exp(-FLING_DECAY * dt)
+      }
+
+      // Glide the intro zoom.
+      if (zoomCurrent !== zoomTarget) {
+        zoomCurrent += (zoomTarget - zoomCurrent) * k
+        if (Math.abs(zoomTarget - zoomCurrent) < 0.0004) zoomCurrent = zoomTarget
+        setIntro(zoomCurrent)
+        if (!engagedRef.current && zoomTarget >= 1 && zoomCurrent > 0.995) {
+          zoomCurrent = 1
+          setIntro(1)
+          engage()
+        }
+      }
+
+      // Glide the active tab's scroll.
+      const body = bodyRef.current
+      if (engagedRef.current && body) {
+        if (syncScroll) {
+          scrollCurrent = scrollTarget = body.scrollTop
+          syncScroll = false
+        }
+        const max = body.scrollHeight - body.clientHeight
+        scrollTarget = clamp(scrollTarget, 0, max)
+        if (scrollCurrent !== scrollTarget) {
+          scrollCurrent += (scrollTarget - scrollCurrent) * k
+          if (Math.abs(scrollTarget - scrollCurrent) < 0.4) scrollCurrent = scrollTarget
+          body.scrollTop = scrollCurrent
         }
       }
     }
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
-      advance(e.deltaY)
+      flingVel = 0
+      advance(wheelDeltaPx(e))
     }
 
-    let touchY: number | null = null
     const onTouchStart = (e: TouchEvent) => {
       touchY = e.touches[0]?.clientY ?? null
+      lastTouchTime = performance.now()
+      touchVel = 0
+      flingVel = 0
     }
     const onTouchMove = (e: TouchEvent) => {
       if (touchY == null) return
@@ -128,7 +231,19 @@ export function useScrollMode({
       const dy = touchY - y
       touchY = y
       e.preventDefault()
+      const now = performance.now()
+      const dtMove = Math.max((now - lastTouchTime) / 1000, 1 / 120)
+      lastTouchTime = now
+      // Low-passed instantaneous velocity, used for the release fling.
+      touchVel = touchVel * 0.7 + (dy / dtMove) * 0.3
       advance(dy)
+    }
+    const onTouchEnd = () => {
+      if (touchY == null) return
+      touchY = null
+      // Ignore stale velocity if the finger rested before lifting.
+      if (performance.now() - lastTouchTime < 90) flingVel = touchVel
+      touchVel = 0
     }
 
     const onKey = (e: KeyboardEvent) => {
@@ -164,14 +279,20 @@ export function useScrollMode({
       }
     }
 
+    raf = requestAnimationFrame(tick)
     window.addEventListener('wheel', onWheel, { passive: false })
     window.addEventListener('touchstart', onTouchStart, { passive: true })
     window.addEventListener('touchmove', onTouchMove, { passive: false })
+    window.addEventListener('touchend', onTouchEnd, { passive: true })
+    window.addEventListener('touchcancel', onTouchEnd, { passive: true })
     window.addEventListener('keydown', onKey)
     return () => {
+      cancelAnimationFrame(raf)
       window.removeEventListener('wheel', onWheel)
       window.removeEventListener('touchstart', onTouchStart)
       window.removeEventListener('touchmove', onTouchMove)
+      window.removeEventListener('touchend', onTouchEnd)
+      window.removeEventListener('touchcancel', onTouchEnd)
       window.removeEventListener('keydown', onKey)
     }
   }, [enabled, zoomProgressRef, engagedRef, setEngaged, bodyRef, sectionCount, sectionIndexRef, navigate, exit, snap, onIntroProgress])

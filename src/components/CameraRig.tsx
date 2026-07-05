@@ -109,7 +109,9 @@ export function CameraRig({
     }
 
     // Snap instantly when the user prefers reduced motion; glide otherwise.
-    const k = reducedMotion ? 1 : 1 - Math.exp(-3.5 * delta)
+    // Scroll input is already eased upstream (useScrollMode), so the camera
+    // tracks tighter there to avoid stacking two layers of lag.
+    const k = reducedMotion ? 1 : 1 - Math.exp(-(scrollMode ? 6.5 : 3.5) * delta)
     cam.position.lerp(desiredPos, k)
     lookAt.current.lerp(desiredTarget, k)
     cam.lookAt(lookAt.current)

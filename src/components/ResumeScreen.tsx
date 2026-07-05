@@ -62,6 +62,20 @@ export function ResumeScreen({
 
   useEffect(() => () => clearTimeout(winTimer.current), [])
 
+  // Keep the active tab visible when the tab bar overflows (narrow screens):
+  // whenever the section changes, glide the tab strip so the tab sits centered.
+  const tabsRef = useRef<HTMLElement | null>(null)
+  useEffect(() => {
+    const nav = tabsRef.current
+    if (!nav || nav.scrollWidth <= nav.clientWidth) return
+    const tab = nav.querySelector<HTMLElement>('.tab.active')
+    if (!tab) return
+    const navRect = nav.getBoundingClientRect()
+    const tabRect = tab.getBoundingClientRect()
+    const left = tabRect.left - navRect.left + nav.scrollLeft - (nav.clientWidth - tabRect.width) / 2
+    nav.scrollTo({ left, behavior: 'smooth' })
+  }, [section, windowVisible])
+
   useEffect(() => {
     const id = setInterval(() => setTime(formatTime()), 30_000)
     return () => clearInterval(id)
@@ -126,7 +140,7 @@ export function ResumeScreen({
                 onClick={() => setMaximized((m) => !m)}
                 aria-label="Maximize window"
               />
-              <nav className="tabs">
+              <nav className="tabs" ref={tabsRef}>
                 {SECTIONS.map((s) => (
                   <button
                     key={s.id}
