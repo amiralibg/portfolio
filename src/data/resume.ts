@@ -19,7 +19,7 @@ export interface SkillGroup {
 
 export const resume = {
   name: 'Amirali Beigi',
-  title: 'Senior Full-Stack Engineer',
+  title: 'Full-Stack Engineer',
   tagline: 'Next.js • TypeScript • Node.js • AI-integrated Applications',
   email: 'amiralibgi.dev@gmail.com',
   links: {
