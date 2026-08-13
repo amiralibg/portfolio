@@ -2,7 +2,15 @@
 FROM node:22-alpine AS build
 WORKDIR /app
 
-# Install dependencies (pnpm via corepack)
+# Install dependencies (pnpm via corepack).
+#
+# The exact pnpm version comes from the "packageManager" field in package.json,
+# which is why package.json is copied BEFORE the install runs. Without that pin,
+# corepack pulls whatever pnpm is newest that day: this build once resolved
+# pnpm 11, whose minimumReleaseAge supply-chain policy rejected a lockfile that
+# pnpm 10 had generated locally, and the image failed to build for a reason that
+# would have disappeared by itself a couple of hours later.
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
