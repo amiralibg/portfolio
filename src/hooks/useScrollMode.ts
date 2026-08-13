@@ -36,6 +36,11 @@ const FLING_MIN = 25 // px/s
 // A single wheel event can't contribute more than this many pixels (tames
 // free-spinning mouse wheels without dulling trackpads).
 const MAX_EVENT_DELTA = 260
+// Edge resistance: extra scroll intent (px) that must accumulate at a tab's
+// edge before switching tabs, so reaching the end of a section doesn't
+// immediately fling the reader into the next one. Decays while idle.
+const EDGE_RESIST = 340
+const EDGE_DECAY = 2.5 // per second
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
@@ -82,6 +87,8 @@ export function useScrollMode({
     let scrollTarget = 0
     // Re-read body.scrollTop before animating (after tab changes / re-engage).
     let syncScroll = true
+    // Signed scroll intent accumulated while pressing against a tab edge.
+    let edgeIntent = 0
 
     // Touch state: live velocity while dragging, decaying fling after release.
     let touchY: number | null = null
@@ -134,32 +141,44 @@ export function useScrollMode({
       if (dy > 0) {
         if (scrollTarget < max - 1) {
           scrollTarget = Math.min(max, scrollTarget + dy)
+          edgeIntent = 0
         } else if (scrollCurrent >= max - 1 && i < sectionCount - 1) {
-          flingVel = 0
-          navigate(i + 1, 'top')
-          syncScroll = true
-          lockUntil = performance.now() + SWITCH_COOLDOWN
+          // At the bottom edge: demand a deliberate extra push (EDGE_RESIST)
+          // before advancing, so the section's end stays readable.
+          edgeIntent = edgeIntent < 0 ? dy : edgeIntent + dy
+          if (edgeIntent >= EDGE_RESIST) {
+            edgeIntent = 0
+            flingVel = 0
+            navigate(i + 1, 'top')
+            syncScroll = true
+            lockUntil = performance.now() + SWITCH_COOLDOWN
+          }
         }
       } else if (dy < 0) {
         if (scrollTarget > 1) {
           scrollTarget = Math.max(0, scrollTarget + dy)
+          edgeIntent = 0
         } else if (scrollCurrent <= 1) {
-          if (i > 0) {
-            flingVel = 0
-            navigate(i - 1, 'bottom')
-            syncScroll = true
-            lockUntil = performance.now() + SWITCH_COOLDOWN
-          } else {
-            // Past the first tab's top → unlock and scrub the intro back out.
-            setEngaged(false)
-            flingVel = 0
-            zoomCurrent = 1
-            zoomTarget = snap ? 0 : clamp(1 + dy * ZOOM_PER_PX, 0, 1)
-            if (snap) {
-              zoomCurrent = 0
-              setIntro(0)
+          edgeIntent = edgeIntent > 0 ? dy : edgeIntent + dy
+          if (-edgeIntent >= EDGE_RESIST) {
+            edgeIntent = 0
+            if (i > 0) {
+              flingVel = 0
+              navigate(i - 1, 'bottom')
+              syncScroll = true
+              lockUntil = performance.now() + SWITCH_COOLDOWN
+            } else {
+              // Past the first tab's top → unlock and scrub the intro back out.
+              setEngaged(false)
+              flingVel = 0
+              zoomCurrent = 1
+              zoomTarget = snap ? 0 : clamp(1 + dy * ZOOM_PER_PX, 0, 1)
+              if (snap) {
+                zoomCurrent = 0
+                setIntro(0)
+              }
+              lockUntil = performance.now() + 140
             }
-            lockUntil = performance.now() + 140
           }
         }
       }
@@ -182,6 +201,13 @@ export function useScrollMode({
       if (touchY == null && Math.abs(flingVel) > FLING_MIN) {
         advance(flingVel * dt)
         flingVel *= Math.exp(-FLING_DECAY * dt)
+      }
+
+      // Let edge intent leak away while idle, so a stray nudge minutes later
+      // doesn't inherit an old, nearly-complete switch.
+      if (edgeIntent !== 0) {
+        edgeIntent *= Math.exp(-EDGE_DECAY * dt)
+        if (Math.abs(edgeIntent) < 1) edgeIntent = 0
       }
 
       // Glide the intro zoom.
