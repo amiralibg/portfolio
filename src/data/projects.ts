@@ -196,7 +196,7 @@ export const projects: Project[] = [
       { value: 'export', label: 'configurable data' },
     ],
     tech: ['Next.js', 'TypeScript', 'TailwindCSS', 'Vitest'],
-    links: { github: 'https://github.com/amiralibg/boxbox' },
+    links: { live: 'https://boxbox.amiralibg.xyz', github: 'https://github.com/amiralibg/boxbox' },
   },
   {
     slug: 'velocitype',
@@ -221,7 +221,7 @@ export const projects: Project[] = [
       { value: '3D', label: 'arcade visuals' },
     ],
     tech: ['TypeScript', 'React', 'Vite', 'three.js', 'TailwindCSS'],
-    links: { github: 'https://github.com/amiralibg/velocitype' },
+    links: { live: 'https://velocitype.xyz', github: 'https://github.com/amiralibg/velocitype' },
   },
   {
     slug: 'nightslide',
@@ -251,7 +251,7 @@ export const projects: Project[] = [
       { value: '2', label: 'render layers' },
     ],
     tech: ['Phaser 4', 'TypeScript', 'Vite', 'GSAP', 'Howler.js', 'Turborepo'],
-    links: { github: 'https://github.com/amiralibg/nightslide' },
+    links: { live: 'https://nightslide.amiralibg.xyz', github: 'https://github.com/amiralibg/nightslide' },
   },
   {
     slug: 'ganjino',

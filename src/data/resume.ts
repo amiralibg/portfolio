@@ -80,7 +80,7 @@ export const resume = {
       year: '2022 — Present',
       kind: 'product',
       tagline: 'No-code landing pages for more than a million users',
-      blurb: 'Landing page builder platform used by more than 1 million users worldwide.',
+      blurb: 'Landing page builder platform.',
       points: [
         'Led and mentored a frontend team of 3 developers within an agile product environment.',
         'Architected and developed 20+ production features and templates across the builder ecosystem.',
