@@ -19,8 +19,8 @@ export interface SkillGroup {
 
 export const resume = {
   name: 'Amirali Beigi',
-  title: 'Senior Frontend Engineer',
-  tagline: 'Next.js • TypeScript • AI-integrated Applications',
+  title: 'Senior Full-Stack Engineer',
+  tagline: 'Next.js • TypeScript • Node.js • AI-integrated Applications',
   email: 'amiralibgi.dev@gmail.com',
   links: {
     github: 'https://github.com/amiralibg',
@@ -40,9 +40,9 @@ export const resume = {
   // The "what I can do for you" cards on the hire-me tab.
   services: [
     {
-      title: 'Product frontends',
+      title: 'End-to-end products',
       blurb:
-        'Next.js / React apps taken from idea to production — architecture, UI systems, performance.',
+        'Next.js / React apps taken from idea to production — architecture, UI systems, the API behind them, and the deploy.',
     },
     {
       title: 'AI interfaces',
@@ -56,18 +56,19 @@ export const resume = {
     },
   ],
   about:
-    'Senior Frontend Engineer with 6+ years of experience building scalable web ' +
-    'and mobile applications with React, Next.js, TypeScript, and modern frontend ' +
-    'architectures. I lead frontend development, ship production-ready products, ' +
-    'and work closely with design, backend, and product teams — with a strong focus ' +
-    'on performance, developer experience, and scalable UI systems. Recently focused ' +
-    'on AI-integrated applications: streaming AI interfaces, MCP workflows, agentic ' +
-    'systems, and real-time user experiences.',
+    'Full-stack engineer with 6+ years delivering end-to-end web and mobile ' +
+    'products. My depth is on the frontend — React, Next.js and TypeScript, ' +
+    'leading teams and building UI systems that hold up at a million users — and ' +
+    'I carry that through the rest of the stack: Node.js APIs, data models, ' +
+    'Docker and CI/CD, shipped and maintained in production. Recently focused on ' +
+    'AI-integrated applications: streaming interfaces, MCP workflows, agentic ' +
+    'systems and real-time UX. I care about clean architecture, code that stays ' +
+    'maintainable, and products that are fast without being joyless to use.',
   highlights: [
     '6+ years of experience',
-    'Startup & fast-paced environments',
+    'End-to-end delivery',
     'Frontend leadership',
-    'AI-assisted products',
+    'AI-integrated products',
   ],
   experience: [
     {

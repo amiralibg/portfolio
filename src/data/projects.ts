@@ -99,6 +99,7 @@ export const projects: Project[] = [
     role: 'Creator',
     kind: 'open source',
     stars: 1,
+    featured: true,
     story: {
       problem:
         'Markdown editors are either toys for beginners or cockpits for power ' +
@@ -126,7 +127,6 @@ export const projects: Project[] = [
     year: '2026',
     role: 'Creator',
     kind: 'open source',
-    featured: true,
     story: {
       problem:
         'Redis desktop clients are Electron apps wearing a native costume — slow to ' +
