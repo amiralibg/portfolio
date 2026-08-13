@@ -52,9 +52,16 @@ Create a second Application pointing at the same repository.
   issue the certificate.
 
 **Volume — do not skip this**
-- Mount a persistent volume at `/app/data`.
+- Mount type **Volume Mount** (a named volume), *not* Bind Mount.
+- Volume name: `portfolio-contact-data`, mount path `/app/data`.
 - That's where the SQLite file lives. Without it, **every redeploy starts with
   an empty inbox** and past messages are gone for good.
+- Named volume specifically because the container runs as the non-root `node`
+  user (uid 1000) and the image chowns `/app/data` to it. Docker seeds an empty
+  named volume with the image directory's ownership, so writes work. A bind
+  mount replaces the directory with a root-owned host folder, and SQLite fails
+  with a permission error on first write unless you `chown -R 1000:1000` it
+  yourself.
 
 **Environment**
 
