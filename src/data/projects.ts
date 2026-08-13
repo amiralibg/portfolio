@@ -1,35 +1,39 @@
 // ✏️ Personal work only — things Amirali built and owns. Employment lives in
 // resume.ts and never appears here; a job is not a portfolio piece.
 //
-// Screenshots: drop a png/webp into src/assets/projects/, import it, and set
-// `cover` (extra shots go in `gallery` and Quick Look becomes a slideshow).
-// Without a cover the card renders a typographic placeholder — deliberate, not
-// broken — so the grid stays presentable while shots are still being made.
+// Screenshots live in `public/projects/<slug>.webp` and are referenced by path,
+// so adding one is just: drop the file in, set `cover`. Run them through
+// `cwebp -q 82 -resize 1600 0` first — the raw captures were 16MB total, which
+// is larger than the rest of the site put together. Extra shots go in `gallery`
+// and Quick Look becomes a slideshow. Without a cover the card renders a
+// typographic placeholder — deliberate, not broken.
 //
-// Star counts are snapshots, not live API reads: this site is a static build and
-// nobody's laptop should wait on api.github.com to render a card. Refresh them
-// when they move meaningfully.
+// `stars` is a fallback snapshot, not the number normally shown: useGitHubStars
+// fetches live counts (cached 6h) and the card prefers those. The snapshot is
+// what renders instantly on first paint and what survives a rate limit or an
+// offline visitor, so it's worth refreshing when it drifts.
 import type { CaseStudy } from './caseStudy'
 
 export interface Project extends CaseStudy {
   /** Featured projects render as full case-study rows above the grid. */
   featured?: boolean
-  /** GitHub stars at the date below — displayed as a static badge. */
+  /** Fallback star count, used until/unless the live fetch returns. */
   stars?: number
 }
 
-/** When the star counts above were last checked. */
+/** When the fallback star counts were last checked by hand. */
 export const STARS_UPDATED = '2026-08-13'
 
 export const projects: Project[] = [
   {
     slug: 'unstream',
+    cover: '/projects/unstream.webp',
     name: 'Unstream',
     tagline: 'Your music library, as files you actually own',
     year: '2026',
     role: 'Creator & maintainer',
     kind: 'open source',
-    stars: 198,
+    stars: 199,
     featured: true,
     story: {
       problem:
@@ -43,11 +47,11 @@ export const projects: Project[] = [
         'Python backend, shipped as one `docker compose up`, with the whole interface ' +
         'in both Farsi and English.',
       impact:
-        'Nearly 200 stars and a steady stream of self-hosters. Files land in a real ' +
+        'Just under 200 stars and a steady stream of self-hosters. Files land in a real ' +
         'folder on your own disk: nothing expires, and nobody stands in between.',
     },
     metrics: [
-      { value: '198', label: 'github stars' },
+      { value: '0', label: 'accounts or API keys' },
       { value: '5', label: 'catalogues' },
       { value: 'FA/EN', label: 'bilingual UI' },
     ],
@@ -56,6 +60,7 @@ export const projects: Project[] = [
   },
   {
     slug: 'doran',
+    cover: '/projects/doran.webp',
     name: 'Doran',
     tagline: 'The missing Persian calendar toolkit for the web',
     year: '2026',
@@ -86,34 +91,8 @@ export const projects: Project[] = [
     links: { docs: 'https://amiralibg.github.io/Doran/', github: 'https://github.com/amiralibg/Doran' },
   },
   {
-    slug: 'redistal',
-    name: 'Redistal',
-    tagline: 'A Redis GUI that feels like a Mac app, because it is one',
-    year: '2026',
-    role: 'Creator',
-    kind: 'open source',
-    featured: true,
-    story: {
-      problem:
-        'Redis desktop clients are Electron apps wearing a native costume — slow to ' +
-        'launch, heavy in memory, and visibly not from the platform they run on.',
-      built:
-        'A genuinely native macOS client on Tauri: a Rust core doing the Redis work ' +
-        'and connection handling, with a React + TypeScript interface on top. Ships as ' +
-        'a real app bundle, not a browser in disguise.',
-      impact:
-        'Opens fast, stays small, and behaves like the rest of the desktop — the ' +
-        'baseline a daily-driver database tool should meet.',
-    },
-    metrics: [
-      { value: 'Rust', label: 'native core' },
-      { value: 'Tauri', label: 'not Electron' },
-    ],
-    tech: ['Tauri', 'Rust', 'React', 'TypeScript', 'Zustand', 'TailwindCSS'],
-    links: { github: 'https://github.com/amiralibg/redistal' },
-  },
-  {
     slug: 'marky',
+    cover: '/projects/marky.webp',
     name: 'Marky',
     tagline: 'A markdown editor that grows with you',
     year: '2026',
@@ -141,7 +120,35 @@ export const projects: Project[] = [
     links: { github: 'https://github.com/amiralibg/marky' },
   },
   {
+    slug: 'redistal',
+    name: 'Redistal',
+    tagline: 'A Redis GUI that feels like a Mac app, because it is one',
+    year: '2026',
+    role: 'Creator',
+    kind: 'open source',
+    featured: true,
+    story: {
+      problem:
+        'Redis desktop clients are Electron apps wearing a native costume — slow to ' +
+        'launch, heavy in memory, and visibly not from the platform they run on.',
+      built:
+        'A genuinely native macOS client on Tauri: a Rust core doing the Redis work ' +
+        'and connection handling, with a React + TypeScript interface on top. Ships as ' +
+        'a real app bundle, not a browser in disguise.',
+      impact:
+        'Opens fast, stays small, and behaves like the rest of the desktop — the ' +
+        'baseline a daily-driver database tool should meet.',
+    },
+    metrics: [
+      { value: 'Rust', label: 'native core' },
+      { value: 'Tauri', label: 'not Electron' },
+    ],
+    tech: ['Tauri', 'Rust', 'React', 'TypeScript', 'Zustand', 'TailwindCSS'],
+    links: { github: 'https://github.com/amiralibg/redistal' },
+  },
+  {
     slug: 'pass',
+    cover: '/projects/pass.webp',
     name: 'Pass',
     tagline: 'Party games for one phone passed around the table',
     year: '2026',
@@ -166,6 +173,7 @@ export const projects: Project[] = [
   },
   {
     slug: 'boxbox',
+    cover: '/projects/boxbox.webp',
     name: 'BoxBox',
     tagline: 'Formula One telemetry, replayed lap by lap',
     year: '2026',
@@ -192,6 +200,7 @@ export const projects: Project[] = [
   },
   {
     slug: 'velocitype',
+    cover: '/projects/velocitype.webp',
     name: 'Velocitype',
     tagline: 'Five games, one keyboard — how fast are you really?',
     year: '2026',
@@ -213,6 +222,36 @@ export const projects: Project[] = [
     ],
     tech: ['TypeScript', 'React', 'Vite', 'three.js', 'TailwindCSS'],
     links: { github: 'https://github.com/amiralibg/velocitype' },
+  },
+  {
+    slug: 'nightslide',
+    cover: '/projects/nightslide.webp',
+    name: 'Nightslide',
+    tagline: 'Midnight street drift — chain the slide, bank the combo',
+    year: '2026',
+    role: 'Creator',
+    kind: 'open source',
+    story: {
+      problem:
+        'Arcade drift games either simulate so hard that nobody can drive them, or ' +
+        'simplify until sliding stops being a skill worth practising.',
+      built:
+        'A top-down pixel-art drift game on Phaser: a sim-influenced handling model ' +
+        'under a Drift Scoring Arena, where chained slides build a combo multiplier. ' +
+        'Two deliberately distinct layers — a crisp nearest-neighbour game canvas ' +
+        'with tire marks, smoke and screen shake, inside a modern DOM shell for the ' +
+        'landing, mode select, HUD and results. Turborepo workspace with a separate ' +
+        'leaderboard API.',
+      impact:
+        'New modes drop in as isolated plug-ins without touching the physics or ' +
+        'rendering core — the architecture is the feature.',
+    },
+    metrics: [
+      { value: 'plug-in', label: 'game modes' },
+      { value: '2', label: 'render layers' },
+    ],
+    tech: ['Phaser 4', 'TypeScript', 'Vite', 'GSAP', 'Howler.js', 'Turborepo'],
+    links: { github: 'https://github.com/amiralibg/nightslide' },
   },
   {
     slug: 'ganjino',

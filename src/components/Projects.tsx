@@ -1,8 +1,13 @@
 import { useState } from 'react'
-import { projects } from '../data/projects'
+import { projects, STARS_UPDATED } from '../data/projects'
 import type { Project } from '../data/projects'
+import { useGitHubStars } from '../hooks/useGitHubStars'
 import { CoverArt, QuickLook } from './QuickLook'
 import { ArrowRightIcon, ArrowUpRightIcon, GitHubIcon, StarIcon } from './icons'
+
+/** Below this, the number says nothing flattering and just adds noise next to a
+ *  card showing 198. Real counts only, or none. */
+const MIN_STARS_SHOWN = 5
 
 interface ProjectsProps {
   /** Controlled Quick Look slug (deep links / Spotlight / terminal).
@@ -19,6 +24,11 @@ export function Projects({ openSlug, onOpenChange }: ProjectsProps) {
   const active = slug ? (projects.find((p) => p.slug === slug) ?? null) : null
   const featured = projects.filter((p) => p.featured)
   const rest = projects.filter((p) => !p.featured)
+
+  // Live counts when GitHub answers, the committed snapshot when it doesn't.
+  const live = useGitHubStars()
+  const starsFor = (p: Project) => live[p.slug] ?? p.stars ?? 0
+  const isLive = (p: Project) => p.slug in live
 
   return (
     <>
@@ -43,7 +53,7 @@ export function Projects({ openSlug, onOpenChange }: ProjectsProps) {
                 <span className="feat-top">
                   <strong>{p.name}</strong>
                   <span className="proj-kind">{p.kind}</span>
-                  {p.stars ? <StarBadge count={p.stars} /> : null}
+                  <StarBadge count={starsFor(p)} live={isLive(p)} />
                 </span>
                 <span className="feat-tagline">{p.tagline}</span>
                 <span className="stats">
@@ -83,7 +93,11 @@ export function Projects({ openSlug, onOpenChange }: ProjectsProps) {
               <span className="proj-body">
                 <span className="card-head">
                   <strong>{p.name}</strong>
-                  {p.stars ? <StarBadge count={p.stars} /> : <span className="card-year">{p.year}</span>}
+                  {starsFor(p) >= MIN_STARS_SHOWN ? (
+                    <StarBadge count={starsFor(p)} live={isLive(p)} />
+                  ) : (
+                    <span className="card-year">{p.year}</span>
+                  )}
                 </span>
                 <span className="proj-tagline">{p.tagline}</span>
                 <span className="chips">
@@ -110,11 +124,20 @@ export function Projects({ openSlug, onOpenChange }: ProjectsProps) {
   )
 }
 
-function StarBadge({ count }: { count: number }) {
+/** Renders nothing below the threshold, so a card never advertises "1 star". */
+function StarBadge({ count, live }: { count: number; live: boolean }) {
+  if (count < MIN_STARS_SHOWN) return null
   return (
-    <span className="star-badge" title={`${count} stars on GitHub`}>
+    <span
+      className="star-badge"
+      title={
+        live
+          ? `${count} stars on GitHub, fetched just now`
+          : `${count} stars on GitHub as of ${STARS_UPDATED}`
+      }
+    >
       <StarIcon size={12} />
-      {count}
+      {count.toLocaleString()}
     </span>
   )
 }

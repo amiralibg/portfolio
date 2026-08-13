@@ -790,7 +790,7 @@ body {
   align-items: center;
   gap: 16px;
   height: 38px;
-  padding: 0 20px 0 8px;
+  padding: 0 20px 0 20px;
   font-size: 15px;
   background: var(--scr-menubar);
   backdrop-filter: blur(10px);
@@ -1244,7 +1244,9 @@ body {
 .feat-media {
   position: relative;
   display: block;
-  aspect-ratio: 8 / 5;
+  /* 16:9 rather than 8:5 — these are screen captures, and the wider box means
+     `cover` trims far less off the sides of a landscape shot. */
+  aspect-ratio: 16 / 9;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
@@ -1255,6 +1257,10 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* The shots are full-page captures at very different ratios — doran is
+     portrait, velocitype square. Centre-cropping those to 8:5 shows a band of
+     middle content; anchoring to the top always shows the hero. */
+  object-position: top center;
   transform: scale(1.01);
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1387,7 +1393,7 @@ body {
 
 .proj-thumb {
   display: block;
-  aspect-ratio: 8 / 5;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
   border-bottom: 1px solid var(--scr-line);
 }
@@ -1397,6 +1403,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: top center;
   transform: scale(1.01);
   transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1529,6 +1536,10 @@ body {
 
 .ql-media img {
   width: 100%;
+  /* Unlike the cards, nothing is cropped here: this is the view someone opens
+     to actually look at the thing. Tall captures get letterboxed instead. */
+  max-height: 100%;
+  object-fit: contain;
   border-radius: 8px;
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
 }
