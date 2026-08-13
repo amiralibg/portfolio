@@ -18,8 +18,8 @@
   --scr-bg: #101118;
   --scr-glow1: #2d2a55;
   --scr-glow2: #1d3a3a;
-  --scr-menubar: rgba(20, 20, 28, 0.6);
-  --scr-window: rgba(28, 29, 38, 0.92);
+  --scr-menubar: rgba(20, 20, 28, 0.92);
+  --scr-window: rgba(28, 29, 38, 0.97);
   --scr-ink: #e8e8ee;
   --scr-muted: #9d9dae;
   --scr-soft: #c3c3d0;
@@ -55,8 +55,8 @@
   --scr-bg: #eef0f5;
   --scr-glow1: #dfe3ff;
   --scr-glow2: #d9efe8;
-  --scr-menubar: rgba(252, 252, 254, 0.72);
-  --scr-window: rgba(255, 255, 255, 0.88);
+  --scr-menubar: rgba(252, 252, 254, 0.95);
+  --scr-window: rgba(255, 255, 255, 0.97);
   --scr-ink: #1b1b22;
   --scr-muted: #6a6a78;
   --scr-soft: #3c3c47;
@@ -718,8 +718,11 @@ body {
   gap: 9px;
   padding: 7px 11px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(18px);
+  background: rgba(82, 84, 100, 0.78);
+  /* No backdrop-filter: this element lives inside the 3D-transformed
+     screen, whose matrix drei rewrites every frame, so the blur is
+     recomputed continuously. Opaque fill instead — visually the same at
+     this scale, and it costs nothing per frame. */
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
 }
 
@@ -793,7 +796,10 @@ body {
   padding: 0 20px 0 20px;
   font-size: 15px;
   background: var(--scr-menubar);
-  backdrop-filter: blur(10px);
+  /* No backdrop-filter: this element lives inside the 3D-transformed
+     screen, whose matrix drei rewrites every frame, so the blur is
+     recomputed continuously. Opaque fill instead — visually the same at
+     this scale, and it costs nothing per frame. */
   border-bottom: 1px solid var(--scr-line);
   flex-shrink: 0;
 }
@@ -847,7 +853,10 @@ body {
   margin: 24px 64px 80px;
   border-radius: 14px;
   background: var(--scr-window);
-  backdrop-filter: blur(20px);
+  /* No backdrop-filter: this element lives inside the 3D-transformed
+     screen, whose matrix drei rewrites every frame, so the blur is
+     recomputed continuously. Opaque fill instead — visually the same at
+     this scale, and it costs nothing per frame. */
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
   overflow: hidden;
   min-height: 0;
@@ -1435,14 +1444,17 @@ body {
   align-items: center;
   justify-content: center;
   padding: 26px;
-  background: rgba(8, 8, 14, 0.5);
-  backdrop-filter: blur(14px);
+  background: rgba(8, 8, 14, 0.82);
+  /* No backdrop-filter: this element lives inside the 3D-transformed
+     screen, whose matrix drei rewrites every frame, so the blur is
+     recomputed continuously. Opaque fill instead — visually the same at
+     this scale, and it costs nothing per frame. */
   overscroll-behavior: contain;
   animation: ql-fade 0.25s ease both;
 }
 
 :root[data-theme="light"] .quicklook {
-  background: rgba(230, 232, 240, 0.55);
+  background: rgba(230, 232, 240, 0.88);
 }
 
 @keyframes ql-fade {
@@ -1997,8 +2009,11 @@ body {
   padding: 12px 14px;
   border-radius: 16px;
   border: 1px solid var(--scr-line);
-  background: color-mix(in srgb, var(--scr-window) 92%, transparent);
-  backdrop-filter: blur(20px);
+  background: var(--scr-window);
+  /* No backdrop-filter: this element lives inside the 3D-transformed
+     screen, whose matrix drei rewrites every frame, so the blur is
+     recomputed continuously. Opaque fill instead — visually the same at
+     this scale, and it costs nothing per frame. */
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
   cursor: pointer;
   animation: notif-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -2785,49 +2800,22 @@ body {
    on the window, cards and pill buttons). Drop the blur there and use
    more opaque fills instead. */
 @supports (-moz-appearance: none) {
+  /* The in-screen surfaces (menubar, window, dock, quicklook, macnotif) are
+     opaque for every browser now — see the perf note on each. What's left here
+     is the page-level chrome, where Firefox's blur is the problem rather than
+     the cost. */
   .theme-toggle,
   .hint,
   .back-button,
-  .menubar,
-  .window,
-  .dock,
   .avail-chip,
   .cmdk-hint,
-  .quicklook,
   .spotlight,
-  .spot-panel,
-  .macnotif {
+  .spot-panel {
     backdrop-filter: none;
-  }
-
-  .quicklook {
-    background: rgba(8, 8, 14, 0.82);
-  }
-
-  :root[data-theme="light"] .quicklook {
-    background: rgba(230, 232, 240, 0.88);
   }
 
   .spot-panel {
     background: var(--bg1);
-  }
-
-  .macnotif {
-    background: var(--scr-window);
-  }
-
-  .dock {
-    background: rgba(82, 84, 100, 0.78);
-  }
-
-  :root[data-theme="dark"] {
-    --scr-menubar: rgba(20, 20, 28, 0.92);
-    --scr-window: rgba(28, 29, 38, 0.97);
-  }
-
-  :root[data-theme="light"] {
-    --scr-menubar: rgba(252, 252, 254, 0.95);
-    --scr-window: rgba(255, 255, 255, 0.97);
   }
 
   /* Firefox mis-rasterizes rounded BORDERS inside the 3D-transformed screen —

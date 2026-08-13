@@ -5,6 +5,7 @@ import { Canvas } from '@react-three/fiber'
 import { ContactShadows, Environment } from '@react-three/drei'
 import { MacBook } from './MacBook'
 import { CameraRig } from './CameraRig'
+import { PerfOverlay } from './PerfOverlay'
 import type { SectionId } from './sections'
 
 interface SceneProps {
@@ -71,7 +72,10 @@ export default function Scene({
   onReady,
 }: SceneProps) {
   return (
-    <Canvas dpr={[1, 2]} camera={{ position: [0, 30, 150], fov: 35 }}>
+    /* dpr is capped at 1.5 rather than 2: on a retina display, 2 means four
+       times the pixels of 1, and for a single soft-lit product shot the extra
+       resolution is not worth roughly doubling the fragment work. */
+    <Canvas dpr={[1, 1.5]} camera={{ position: [0, 30, 150], fov: 35 }}>
       <pointLight position={[10, 10, 10]} intensity={1.5} />
       <Suspense fallback={null}>
         <MacBook
@@ -101,7 +105,26 @@ export default function Scene({
         <Environment files="/hdri/potsdamer_platz_1k.hdr" />
         <LoadProbe onReady={onReady} />
       </Suspense>
-      <ContactShadows position={[0, -0.5, 0]} opacity={0.4} scale={90} blur={1.75} far={20} />
+      {/* `frames` is the important prop here. drei defaults it to Infinity,
+          which re-renders the scene into a depth target AND runs two
+          full-screen blur passes on EVERY frame — forever — for a shadow under
+          a laptop that only drifts a fraction of a unit.
+
+          Keying on `ready` remounts this when the intro starts, resetting the
+          internal counter; 120 frames (~2s) covers the rise-in animation, then
+          it freezes. Before that it renders normally, which is free anyway
+          because the loading screen is still covering everything. */}
+      <ContactShadows
+        key={ready ? 'settled' : 'intro'}
+        frames={ready ? 120 : Infinity}
+        position={[0, -0.5, 0]}
+        opacity={0.4}
+        scale={90}
+        blur={1.75}
+        far={20}
+      />
+      {/* Frame stats on demand — see PerfOverlay for why this ships. */}
+      {new URLSearchParams(location.search).has('perf') && <PerfOverlay />}
       <CameraRig
         ready={ready}
         zoomed={zoomed}
