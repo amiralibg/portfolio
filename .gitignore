@@ -12,6 +12,15 @@ dist
 dist-ssr
 *.local
 
+# Secrets — the contact API's admin token and bot token live here.
+.env
+.env.*
+!.env.example
+
+# The contact inbox. Real messages from real people; belongs in the deployed
+# volume, never in the repo. (-wal/-shm are SQLite's write-ahead log sidecars.)
+server/data/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

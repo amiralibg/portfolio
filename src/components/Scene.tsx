@@ -23,6 +23,12 @@ interface SceneProps {
   zoomProgressRef: RefObject<number>
   section: SectionId
   onSectionChange: (id: SectionId) => void
+  detailSlug?: string | null
+  onDetailSlugChange?: (slug: string | null) => void
+  onOpenSpotlight?: () => void
+  notifState?: 'hidden' | 'in' | 'out'
+  onNotifClick?: () => void
+  onNotifDismiss?: () => void
   bodyRef?: RefObject<HTMLDivElement | null>
   reducedMotion: boolean
   /** Fires once the model + environment have finished loading. */
@@ -54,6 +60,12 @@ export default function Scene({
   zoomProgressRef,
   section,
   onSectionChange,
+  detailSlug,
+  onDetailSlugChange,
+  onOpenSpotlight,
+  notifState,
+  onNotifClick,
+  onNotifDismiss,
   bodyRef,
   reducedMotion,
   onReady,
@@ -73,10 +85,20 @@ export default function Scene({
           zoomProgressRef={zoomProgressRef}
           section={section}
           onSectionChange={onSectionChange}
+          detailSlug={detailSlug}
+          onDetailSlugChange={onDetailSlugChange}
+          onOpenSpotlight={onOpenSpotlight}
+          notifState={notifState}
+          onNotifClick={onNotifClick}
+          onNotifDismiss={onNotifDismiss}
           bodyRef={bodyRef}
           reducedMotion={reducedMotion}
         />
-        <Environment preset="city" />
+        {/* Self-hosted, NOT `preset="city"`. The preset fetches this same file
+            from raw.githack.com, which now 403s — and because the loader waits
+            on this Suspense boundary, a failed fetch left the site stuck on the
+            loading screen forever. Same reason public/draco/ is vendored. */}
+        <Environment files="/hdri/potsdamer_platz_1k.hdr" />
         <LoadProbe onReady={onReady} />
       </Suspense>
       <ContactShadows position={[0, -0.5, 0]} opacity={0.4} scale={90} blur={1.75} far={20} />

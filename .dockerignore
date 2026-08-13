@@ -1,10 +1,28 @@
-node_modules
+# Build context for the FRONTEND image only. The API has its own context and
+# Dockerfile under server/.
+
+# `node_modules` alone only matches the root one — server/node_modules (68MB of
+# compiled better-sqlite3) would otherwise ride along into this image.
+**/node_modules
 dist
+dist-ssr
+
+# Secrets. COPY . . would otherwise bake server/.env — which holds ADMIN_TOKEN —
+# into an image layer, where it stays readable even if a later layer deletes it.
+.env
+.env.*
+!.env.example
+
+# The API is built separately; none of it belongs in the static site image.
+server
+
 .git
 .gitignore
+.github
 Dockerfile
 .dockerignore
 *.md
 .vscode
 .idea
+.DS_Store
 npm-debug.log*

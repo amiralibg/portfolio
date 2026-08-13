@@ -1,0 +1,385 @@
+/* Private inbox at /admin. Deliberately plain: this is a tool, not a portfolio
+   piece. Same tokens as the site so it stays theme-aware, no decoration. */
+
+.admin,
+.admin-gate {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  background: var(--bg0);
+  color: var(--ink);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.admin {
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ---------- token gate ---------- */
+
+.admin-gate {
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.gate-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg1);
+}
+
+.gate-card h1 {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+}
+
+.gate-card p {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.gate-card input,
+.admin-search input {
+  font: inherit;
+  color: var(--ink);
+  background: rgba(128, 128, 160, 0.09);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  outline: none;
+}
+
+.gate-card input {
+  padding: 11px 13px;
+  font-size: 15px;
+}
+
+.gate-card input:focus {
+  border-color: var(--accent);
+}
+
+.gate-error {
+  font-size: 13px;
+  color: #e58c8c;
+}
+
+.gate-card button {
+  padding: 11px 18px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.gate-card button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- toolbar ---------- */
+
+.admin-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.admin-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.admin-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-family: "Inter", sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 200px;
+  max-width: 320px;
+  padding: 0 12px;
+  color: var(--muted);
+  background: rgba(128, 128, 160, 0.09);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+.admin-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
+  font-size: 14px;
+  background: none;
+  border: none;
+}
+
+.admin-filters {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.admin-filters button,
+.admin-ghost {
+  padding: 7px 14px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.admin-filters button:hover,
+.admin-ghost:hover {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+.admin-filters button.active {
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+.admin-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-ghost.danger:hover {
+  color: #e58c8c;
+  border-color: #e58c8c;
+}
+
+.admin-solid {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 18px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 999px;
+  text-decoration: none;
+}
+
+.admin-note {
+  padding: 24px;
+  font-size: 14.5px;
+  color: var(--muted);
+}
+
+.admin-note.error {
+  color: #e58c8c;
+}
+
+/* ---------- list + detail ---------- */
+
+.admin-split {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+.msg-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  border-right: 1px solid var(--line);
+}
+
+.msg-empty {
+  padding: 24px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.msg-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 14px 18px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-left: 2px solid transparent;
+  cursor: pointer;
+}
+
+.msg-row:hover {
+  background: rgba(128, 128, 160, 0.07);
+}
+
+.msg-row.active {
+  background: rgba(128, 128, 160, 0.11);
+  border-left-color: var(--accent);
+}
+
+/* An unread row is bolder and carries a dot — never colour alone. */
+.msg-row.unread strong::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+.msg-row.unread strong {
+  font-weight: 700;
+}
+
+.msg-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 14.5px;
+}
+
+.msg-row-top time {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.msg-row-email {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.msg-row-preview {
+  font-size: 13px;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.msg-detail {
+  overflow-y: auto;
+}
+
+.detail {
+  padding: 28px;
+  max-width: 720px;
+}
+
+.detail header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 18px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.detail h2 {
+  margin: 0;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+}
+
+.detail header a {
+  font-size: 14.5px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.detail header time {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.detail-body {
+  margin: 0 0 24px;
+  font-size: 15.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.detail-meta span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  /* Stack: the list scrolls, the detail sits under it. */
+  .admin-split {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(140px, 40%) 1fr;
+  }
+
+  .msg-list {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .detail {
+    padding: 20px;
+  }
+}

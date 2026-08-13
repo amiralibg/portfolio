@@ -1,10 +1,12 @@
 import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Group } from 'three'
 import { ResumeScreen, SunIcon, MoonIcon } from './components/ResumeScreen'
+import { Spotlight } from './components/Spotlight'
 import { SECTIONS } from './components/sections'
 import type { SectionId } from './components/sections'
 import { useScrollMode } from './hooks/useScrollMode'
 import { resume } from './data/resume'
+import { projects } from './data/projects'
 
 // The 3D scene (three.js / R3F / drei) loads as its own chunk behind the loader.
 const Scene = lazy(() => import('./components/Scene'))
@@ -15,6 +17,26 @@ type Mode = 'interactive' | 'scroll'
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
+const HIRE_INDEX = SECTIONS.findIndex((s) => s.id === 'hire')
+
+/** Sections whose entries open a Quick Look, and the slugs each one accepts.
+ *  Anything else in the hash is ignored rather than trusted. */
+const DETAIL_SLUGS: Partial<Record<SectionId, readonly string[]>> = {
+  projects: projects.map((p) => p.slug),
+  experience: resume.experience.map((j) => j.slug),
+}
+
+/** Deep links: `#about` … `#projects/<slug>` … `#experience/<slug>` … `#hire`
+ *  (hash-based so it works on any static host, no server rewrites needed). */
+function parseHash(): { section: SectionId; slug: string | null } | null {
+  const [sec, slug] = window.location.hash.replace(/^#\/?/, '').split('/')
+  const known = SECTIONS.find((s) => s.id === sec)
+  if (!known) return null
+  const allowed = DETAIL_SLUGS[known.id]
+  return { section: known.id, slug: slug && allowed?.includes(slug) ? slug : null }
+}
+
 export default function App() {
   const [zoomed, setZoomed] = useState(false)
   const [ready, setReady] = useState(false)
@@ -24,20 +46,30 @@ export default function App() {
   const [theme, setTheme] = useState<Theme>(
     () => (localStorage.getItem('theme') as Theme) || 'dark',
   )
+  // Default: interactive on desktop, guided scroll on mobile (saved choice wins).
   const [mode, setMode] = useState<Mode>(
-    () => (localStorage.getItem('mode') as Mode) || 'scroll',
+    () =>
+      (localStorage.getItem('mode') as Mode) ||
+      (window.matchMedia('(max-width: 820px)').matches ? 'scroll' : 'interactive'),
   )
   const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 820px)').matches)
   const screenRef = useRef<Group | null>(null)
   const zoomedRef = useRef(false)
   const closingRef = useRef(false)
-  zoomedRef.current = zoomed
+  useEffect(() => {
+    zoomedRef.current = zoomed
+  }, [zoomed])
 
   // ----- scroll mode: guided scroll through the resume -----
   // Desktop drives the 3D camera zoom; mobile walks tabs inside the modal.
   const scrollActive = mode === 'scroll' && !isMobile
   const mobileScrollActive = mode === 'scroll' && isMobile
   const [section, setSection] = useState<SectionId>('about')
+  /** Slug of the project whose Quick Look is open (deep links / Spotlight / terminal). */
+  const [detailSlug, setDetailSlug] = useState<string | null>(null)
+  const [spotlightOpen, setSpotlightOpen] = useState(false)
+  /** Deep link captured at mount, applied once the loader reveals the scene. */
+  const [pendingLink, setPendingLink] = useState(parseHash)
   const [engaged, setEngaged] = useState(false)
   const bodyRef = useRef<HTMLDivElement | null>(null)
   const zoomProgressRef = useRef(0)
@@ -50,13 +82,23 @@ export default function App() {
     setEngaged(v)
   }, [])
 
-  const navigate = useCallback((index: number, edge: 'top' | 'bottom') => {
-    pendingEdgeRef.current = edge
-    // Keep the index ref current synchronously so a fast fling can't act on a
-    // stale value before the [section] effect below catches up.
-    sectionIndexRef.current = index
-    setSection(SECTIONS[index].id)
+  // Section changes route through here: a Quick Look slug only means anything
+  // inside the tab it came from, so leaving that tab always closes the panel.
+  const changeSection = useCallback((id: SectionId) => {
+    setSection(id)
+    setDetailSlug(null)
   }, [])
+
+  const navigate = useCallback(
+    (index: number, edge: 'top' | 'bottom') => {
+      pendingEdgeRef.current = edge
+      // Keep the index ref current synchronously so a fast fling can't act on a
+      // stale value before the [section] effect below catches up.
+      sectionIndexRef.current = index
+      changeSection(SECTIONS[index].id)
+    },
+    [changeSection],
+  )
 
   const modalRef = useRef<HTMLDivElement | null>(null)
 
@@ -81,7 +123,6 @@ export default function App() {
     setEngagedBoth(false)
   }, [applyIntro, setEngagedBoth])
 
-  const reveal = useCallback(() => setReady(true), [])
   const onSceneReady = useCallback(() => setSceneReady(true), [])
 
   const closeResume = useCallback(() => {
@@ -101,24 +142,122 @@ export default function App() {
   }, [isMobile])
 
   // Jump straight to the screen (desktop click / rail) at a specific tab.
-  const jumpTo = (index: number) => {
-    zoomProgressRef.current = 1
-    setEngagedBoth(true)
-    navigate(index, 'top')
-  }
+  const jumpTo = useCallback(
+    (index: number) => {
+      zoomProgressRef.current = 1
+      setEngagedBoth(true)
+      navigate(index, 'top')
+    },
+    [navigate, setEngagedBoth],
+  )
 
   // Mobile scroll: tapping the laptop opens the modal fully (skips the scrub).
-  const engageMobile = () => {
-    setSection('about')
+  const engageMobile = useCallback(() => {
+    changeSection('about')
     zoomProgressRef.current = 1
     applyIntro(1)
     setEngagedBoth(true)
-  }
+  }, [changeSection, applyIntro, setEngagedBoth])
+
+  // Open the resume at a tab — and optionally a project's Quick Look —
+  // whatever mode/device we're in. Used by the header chip, deep links,
+  // Spotlight and the notification.
+  const openAt = useCallback(
+    (id: SectionId, slug: string | null = null) => {
+      const index = SECTIONS.findIndex((s) => s.id === id)
+      if (scrollActive) {
+        jumpTo(index)
+      } else if (mobileScrollActive) {
+        engageMobile()
+        navigate(index, 'top')
+      } else {
+        changeSection(id)
+        setZoomed(true)
+      }
+      // Set last — the mode-specific opening above clears any stale slug.
+      setDetailSlug(slug)
+    },
+    [scrollActive, mobileScrollActive, jumpTo, engageMobile, navigate, changeSection],
+  )
+
+  // Loader finished: reveal the scene and apply any deep link from the URL.
+  const reveal = useCallback(() => {
+    setReady(true)
+    if (pendingLink) {
+      openAt(pendingLink.section, pendingLink.slug)
+      setPendingLink(null)
+    }
+  }, [pendingLink, openAt])
 
   // Keep the index ref in sync so the controller can read it synchronously.
   useEffect(() => {
     sectionIndexRef.current = SECTIONS.findIndex((s) => s.id === section)
   }, [section])
+
+  // ----- deep links -----
+
+  // Follow hash edits made while browsing (pasted links, back/forward).
+  useEffect(() => {
+    const onHash = () => {
+      const t = parseHash()
+      if (t) openAt(t.section, t.slug)
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [openAt])
+
+  // Mirror the open location into the URL (replaceState — no history spam).
+  useEffect(() => {
+    if (pendingLink) return
+    const open = scrollActive || mobileScrollActive ? engaged : zoomed
+    const hash = !open ? '' : detailSlug ? `#${section}/${detailSlug}` : `#${section}`
+    if (window.location.hash !== hash) {
+      history.replaceState(null, '', window.location.pathname + window.location.search + hash)
+    }
+  }, [pendingLink, scrollActive, mobileScrollActive, engaged, zoomed, section, detailSlug])
+
+  // ----- Spotlight (⌘K / Ctrl+K) -----
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setSpotlightOpen((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  // ----- availability notification: one nudge per session, ~40s in -----
+  const [notifState, setNotifState] = useState<'hidden' | 'in' | 'out'>('hidden')
+  const dismissNotif = useCallback(() => setNotifState((s) => (s === 'in' ? 'out' : s)), [])
+
+  useEffect(() => {
+    if (!ready || !resume.availability.open) return
+    if (sessionStorage.getItem('hire-nudge')) return
+    const t = setTimeout(() => {
+      // Mission already accomplished if the visitor is reading the hire tab.
+      const onHire =
+        sectionIndexRef.current === HIRE_INDEX && (engagedRef.current || zoomedRef.current)
+      if (onHire) return
+      sessionStorage.setItem('hire-nudge', '1')
+      setNotifState('in')
+    }, 40_000)
+    return () => clearTimeout(t)
+  }, [ready])
+
+  // Slide out on its own after a while, then unmount after the exit animation.
+  useEffect(() => {
+    if (notifState !== 'in') return
+    const t = setTimeout(dismissNotif, 14_000)
+    return () => clearTimeout(t)
+  }, [notifState, dismissNotif])
+
+  useEffect(() => {
+    if (notifState !== 'out') return
+    const t = setTimeout(() => setNotifState('hidden'), 400)
+    return () => clearTimeout(t)
+  }, [notifState])
 
   // After a scroll-driven tab change, settle the new body at the right edge.
   useLayoutEffect(() => {
@@ -137,7 +276,7 @@ export default function App() {
     zoomProgressRef.current = 0
     applyIntro(0)
     setEngagedBoth(false)
-    setSection('about')
+    changeSection('about')
     setZoomed(false)
   }
 
@@ -243,7 +382,16 @@ export default function App() {
           cameraMaxZoom={mobileScrollActive ? 0.5 : 1}
           zoomProgressRef={zoomProgressRef}
           section={section}
-          onSectionChange={setSection}
+          onSectionChange={changeSection}
+          detailSlug={detailSlug}
+          onDetailSlugChange={setDetailSlug}
+          onOpenSpotlight={() => setSpotlightOpen(true)}
+          notifState={notifState}
+          onNotifClick={() => {
+            openAt('hire')
+            dismissNotif()
+          }}
+          onNotifDismiss={dismissNotif}
           bodyRef={isMobile ? undefined : bodyRef}
           reducedMotion={reducedMotion}
           onReady={onSceneReady}
@@ -260,6 +408,24 @@ export default function App() {
           <i>.</i>
         </span>
         <div className="top-actions">
+          {resume.availability.open && (
+            <button
+              className="avail-chip"
+              onClick={() => openAt('hire')}
+              title="Open the hire-me tab"
+            >
+              <i className="avail-dot" aria-hidden />
+              <span className="avail-chip-long">available for projects</span>
+              <span className="avail-chip-short">available</span>
+            </button>
+          )}
+          <button
+            className="cmdk-hint"
+            onClick={() => setSpotlightOpen(true)}
+            title="Search sections, projects, actions"
+          >
+            <kbd>{IS_MAC ? '⌘K' : 'Ctrl K'}</kbd>
+          </button>
           <div className="mode-switch" role="radiogroup" aria-label="Viewing mode">
             <button
               role="radio"
@@ -337,7 +503,23 @@ export default function App() {
 
       {zoomed && isMobile && (
         <div className={`mobile-overlay${overlayClosing ? ' closing' : ''}`}>
-          <ResumeScreen zoomed theme={theme} onToggleTheme={toggleTheme} variant="overlay" />
+          <ResumeScreen
+            zoomed
+            theme={theme}
+            onToggleTheme={toggleTheme}
+            variant="overlay"
+            section={section}
+            onSectionChange={changeSection}
+            detailSlug={detailSlug}
+            onDetailSlugChange={setDetailSlug}
+            onOpenSpotlight={() => setSpotlightOpen(true)}
+            notifState={notifState}
+            onNotifClick={() => {
+              openAt('hire')
+              dismissNotif()
+            }}
+            onNotifDismiss={dismissNotif}
+          />
         </div>
       )}
 
@@ -350,11 +532,30 @@ export default function App() {
             onToggleTheme={toggleTheme}
             variant="overlay"
             section={section}
-            onSectionChange={setSection}
+            onSectionChange={changeSection}
+            detailSlug={detailSlug}
+            onDetailSlugChange={setDetailSlug}
+            onOpenSpotlight={() => setSpotlightOpen(true)}
+            notifState={notifState}
+            onNotifClick={() => {
+              openAt('hire')
+              dismissNotif()
+            }}
+            onNotifDismiss={dismissNotif}
             bodyRef={bodyRef}
           />
         </div>
       )}
+
+      <Spotlight
+        open={spotlightOpen}
+        onClose={() => setSpotlightOpen(false)}
+        openAt={openAt}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        mode={mode}
+        onChangeMode={changeMode}
+      />
     </div>
   )
 }
@@ -391,6 +592,20 @@ function LoadingScreen({ sceneReady, onReveal }: { sceneReady: boolean; onReveal
     const t = setTimeout(() => setPhase('exit'), wait)
     return () => clearTimeout(t)
   }, [sceneReady, progress, phase, mountedAt])
+
+  // Failsafe: reveal the page even if the scene never reports ready. A single
+  // unreachable asset inside the Suspense boundary used to strand visitors on
+  // this screen indefinitely; a portfolio that won't open is worse than one
+  // whose laptop is still popping in.
+  useEffect(() => {
+    if (new URLSearchParams(location.search).has('loader')) return
+    if (phase !== 'loading') return
+    const t = setTimeout(() => {
+      console.warn('[loader] scene did not report ready in 12s — revealing anyway')
+      setPhase('exit')
+    }, 12_000)
+    return () => clearTimeout(t)
+  }, [phase])
 
   useEffect(() => {
     if (phase !== 'exit') return

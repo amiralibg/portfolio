@@ -23,6 +23,12 @@ interface MacBookProps {
   zoomProgressRef?: RefObject<number>
   section?: SectionId
   onSectionChange?: (id: SectionId) => void
+  detailSlug?: string | null
+  onDetailSlugChange?: (slug: string | null) => void
+  onOpenSpotlight?: () => void
+  notifState?: 'hidden' | 'in' | 'out'
+  onNotifClick?: () => void
+  onNotifDismiss?: () => void
   bodyRef?: RefObject<HTMLDivElement | null>
   /** Freeze the idle float and snap transforms for prefers-reduced-motion. */
   reducedMotion?: boolean
@@ -39,13 +45,20 @@ export function MacBook({
   zoomProgressRef,
   section,
   onSectionChange,
+  detailSlug,
+  onDetailSlugChange,
+  onOpenSpotlight,
+  notifState,
+  onNotifClick,
+  onNotifDismiss,
   bodyRef,
   reducedMotion,
 }: MacBookProps) {
   const group = useRef<THREE.Group>(null)
   const screenMesh = useRef<THREE.Mesh>(null)
+  // Second arg: local Draco decoder (public/draco/) instead of the gstatic CDN.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { nodes, materials } = useGLTF('/macbook-16.glb') as any
+  const { nodes, materials } = useGLTF('/macbook-16.glb', '/draco/') as any
   const [hovered, setHovered] = useState(false)
 
   useEffect(() => {
@@ -138,6 +151,12 @@ export function MacBook({
               scrollMode={scrollMode}
               section={section}
               onSectionChange={onSectionChange}
+              detailSlug={detailSlug}
+              onDetailSlugChange={onDetailSlugChange}
+              onOpenSpotlight={onOpenSpotlight}
+              notifState={notifState}
+              onNotifClick={onNotifClick}
+              onNotifDismiss={onNotifDismiss}
               bodyRef={bodyRef}
             />
             {!active && onScreenClick && (
@@ -150,4 +169,4 @@ export function MacBook({
   )
 }
 
-useGLTF.preload('/macbook-16.glb')
+useGLTF.preload('/macbook-16.glb', '/draco/')
