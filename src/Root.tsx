@@ -14,6 +14,12 @@ export default function Root() {
 
   if (!isAdmin) return <App />
 
+  // index.html ships one static <meta name="robots"> for the whole build, and
+  // it says "index" because the portfolio is the page that matters. /admin
+  // inherits it, so flip it here. robots.txt and nginx's X-Robots-Tag already
+  // cover the crawlers that never run JS; this catches the ones that do.
+  document.querySelector('meta[name="robots"]')?.setAttribute('content', 'noindex, nofollow')
+
   return (
     <Suspense fallback={null}>
       <AdminApp />
