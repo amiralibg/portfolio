@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+# The private contact inbox. Nothing to index, and it is behind a login.
+Disallow: /admin
 
 Sitemap: https://amiralibg.xyz/sitemap.xml

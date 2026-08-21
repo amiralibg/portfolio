@@ -1,11 +1,8 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0a0a10" />
 
     <!-- Primary meta -->
@@ -19,11 +16,21 @@
       content="Amirali Beigi, Full-Stack Engineer, Full Stack Developer, Frontend Engineer, React, Next.js, TypeScript, Node.js, three.js, AI, portfolio, web developer"
     />
     <meta name="author" content="Amirali Beigi" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
     <link rel="canonical" href="https://amiralibg.xyz/" />
 
     <!-- Icons -->
     <!-- Real sizes rather than one large image: a browser downscaling a 400px
-         source to 16px turns this line art to mush. -->
+         source to 16px turns this line art to mush.
+         The .ico goes first and stays at /favicon.ico because crawlers that
+         ignore these <link> tags — Google's favicon fetcher among them — ask
+         for that path directly, and the SPA fallback would otherwise answer
+         with index.html: a 200 response that is not an image at all. -->
+    <link rel="icon" href="/favicon.ico" sizes="48x48 32x32 16x16" />
+    <!-- Google wants a source comfortably larger than 48px to render the
+         favicon across its surfaces, so 96 is declared alongside the hinted
+         small sizes. -->
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
     <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -39,8 +46,14 @@
       content="Full-Stack Engineer, available for new projects — React, Next.js, TypeScript, Node.js and AI-integrated applications. Interactive 3D portfolio."
     />
     <meta property="og:image" content="https://amiralibg.xyz/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Amirali Beigi — Full-Stack Engineer. Interactive 3D portfolio."
+    />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:site_name" content="Amirali Beigi" />
 
     <!-- Twitter -->
@@ -51,6 +64,11 @@
       content="Full-Stack Engineer, available for new projects — React, Next.js, TypeScript, Node.js, AI-integrated applications. Interactive 3D portfolio."
     />
     <meta name="twitter:image" content="https://amiralibg.xyz/og-image.jpg" />
+    <meta
+      name="twitter:image:alt"
+      content="Amirali Beigi — Full-Stack Engineer. Interactive 3D portfolio."
+    />
+    <meta name="twitter:creator" content="@_amiralibg" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -58,34 +76,215 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Inline, because this styles #resume-text in <body> — the one thing
+         that has to look right on the runs where the stylesheet or the bundle
+         never arrives. -->
+    <style>
+      /* Clipped, not hidden: out of the picture, still in the DOM and still in
+         the accessibility tree. display:none would drop it from both, and a
+         screen reader would be left with a bare <canvas> where the resume is
+         supposed to be. */
+      #resume-text {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      /* Two ways the app never arrives: JS is off (.no-js survives because the
+         un-setting script below never ran) or the bundle died on the way in
+         (.no-app, set by the watchdog at the end of <body>). Either way the
+         resume becomes the page, which beats the black screen those visitors
+         get otherwise. */
+      .no-js #resume-text,
+      .no-app #resume-text {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        width: auto;
+        height: auto;
+        margin: 0;
+        padding: 4rem 1.5rem;
+        overflow-y: auto;
+        clip-path: none;
+        white-space: normal;
+        color: #e8e8ef;
+        background: #0a0a10;
+        font:
+          400 1rem/1.7 Inter,
+          system-ui,
+          sans-serif;
+      }
+      .no-js #resume-text > *,
+      .no-app #resume-text > * {
+        max-width: 46rem;
+        margin-inline: auto;
+      }
+      .no-js #resume-text h1,
+      .no-app #resume-text h1 {
+        margin: 0 auto;
+        font-size: 2rem;
+      }
+      .no-js #resume-text h2,
+      .no-app #resume-text h2 {
+        margin: 2.5rem auto 0.75rem;
+        font-size: 1.1rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #9a9ab0;
+      }
+      .no-js #resume-text .subtitle,
+      .no-app #resume-text .subtitle {
+        margin: 0.25rem auto 2rem;
+        color: #9a9ab0;
+      }
+      .no-js #resume-text li,
+      .no-app #resume-text li {
+        margin-bottom: 0.5rem;
+      }
+      .no-js #resume-text a,
+      .no-app #resume-text a {
+        color: #7dd3fc;
+      }
+    </style>
+
+    <!-- Blocking and inline on purpose: this has to beat the first paint, or
+         the fallback resume flashes over the loader on every cold load. -->
+    <script>
+      document.documentElement.classList.remove('no-js')
+    </script>
   </head>
   <body>
+    <!-- The resume lives inside the WebGL scene, and it only enters the DOM
+         once you click the laptop screen — so the rendered page a crawler sees
+         is about twenty words of chrome, and a visitor whose JS or WebGL fails
+         sees nothing at all. This is the text alternative for that canvas: the
+         same content, in plain HTML, present from the first byte and never
+         removed. It sits outside #root so React cannot clear it. -->
+    <main id="resume-text">
+      <h1>Amirali Beigi</h1>
+      <p class="subtitle">
+        Full-Stack Engineer — Next.js, TypeScript, Node.js, AI-integrated applications
+      </p>
+      <p>
+        Full-stack engineer with 6+ years delivering end-to-end web and mobile products. My depth
+        is on the frontend — React, Next.js and TypeScript, leading teams and building UI systems
+        that hold up at a million users — and I carry that through the rest of the stack: Node.js
+        APIs, data models, Docker and CI/CD, shipped and maintained in production. Recently
+        focused on AI-integrated applications: streaming interfaces, MCP workflows, agentic
+        systems and real-time UX.
+      </p>
+
+      <h2>Experience</h2>
+      <ul>
+        <li><strong>Senior Frontend Developer, Landin</strong> (2022 — Present) — no-code landing page builder serving 1M+ users. Led a frontend team of 3 and shipped 20+ production features.</li>
+        <li><strong>Frontend Engineer, Ply</strong> (2025 — 2026) — AI-powered client products for a UAE design studio.</li>
+        <li><strong>Frontend Engineer (Freelance), UrPlaza</strong> (2024)</li>
+        <li><strong>Co-founder &amp; CTO, Namaki</strong> (2022 — 2023)</li>
+        <li><strong>Frontend Developer, Cinemac (Jcoders)</strong> (2021 — 2022)</li>
+        <li><strong>Senior Frontend Developer, Doreddy</strong> (2020 — 2021)</li>
+      </ul>
+
+      <h2>Projects</h2>
+      <ul>
+        <li><strong>Unstream</strong> — your music library, as files you actually own</li>
+        <li><strong>Doran</strong> — the missing Persian calendar toolkit for the web</li>
+        <li><strong>Marky</strong> — a markdown editor that grows with you</li>
+        <li><strong>Redistal</strong> — a Redis GUI that feels like a Mac app, because it is one</li>
+        <li><strong>BoxBox</strong> — Formula One telemetry, replayed lap by lap</li>
+        <li><strong>Velocitype</strong> — five typing games, one keyboard</li>
+        <li><strong>Ganjino</strong> — savings goals priced in gold, not a currency that melts</li>
+      </ul>
+
+      <h2>Skills</h2>
+      <p>
+        React.js, Next.js, Vue.js, Nuxt.js, React Native, TypeScript, JavaScript, TailwindCSS,
+        shadcn/ui, SCSS, Material UI, Framer Motion, Zustand, Redux, TanStack Query, Node.js,
+        Express.js, MongoDB, Supabase, Docker, CI/CD, Git, Storybook, Jest, Sentry.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Currently available for new projects.
+        <a href="mailto:amiralibgi.dev@gmail.com">amiralibgi.dev@gmail.com</a> ·
+        <a href="https://github.com/amiralibg" rel="me">GitHub</a> ·
+        <a href="https://linkedin.com/in/amiralibeigi" rel="me">LinkedIn</a> ·
+        <a href="https://x.com/_amiralibg" rel="me">X</a>
+      </p>
+    </main>
     <div id="root"></div>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "Person",
-        "name": "Amirali Beigi",
-        "url": "https://amiralibg.xyz/",
-        "jobTitle": "Full-Stack Engineer",
-        "email": "mailto:amiralibgi.dev@gmail.com",
-        "sameAs": [
-          "https://github.com/amiralibg",
-          "https://linkedin.com/in/amiralibeigi",
-          "https://x.com/_amiralibg"
-        ],
-        "knowsAbout": [
-          "React",
-          "Next.js",
-          "TypeScript",
-          "Node.js",
-          "Express.js",
-          "React Native",
-          "three.js",
-          "AI-integrated applications"
+        "@graph": [
+          {
+            "@type": "Person",
+            "@id": "https://amiralibg.xyz/#person",
+            "name": "Amirali Beigi",
+            "url": "https://amiralibg.xyz/",
+            "image": "https://amiralibg.xyz/apple-touch-icon.png",
+            "jobTitle": "Full-Stack Engineer",
+            "description": "Full-stack engineer with 6+ years delivering end-to-end web and mobile products with React, Next.js, TypeScript and Node.js, including AI-integrated interfaces.",
+            "email": "mailto:amiralibgi.dev@gmail.com",
+            "worksFor": {
+              "@type": "Organization",
+              "name": "Landin",
+              "url": "https://landin.ir"
+            },
+            "sameAs": [
+              "https://github.com/amiralibg",
+              "https://linkedin.com/in/amiralibeigi",
+              "https://x.com/_amiralibg"
+            ],
+            "knowsAbout": [
+              "React",
+              "Next.js",
+              "TypeScript",
+              "Node.js",
+              "Express.js",
+              "React Native",
+              "three.js",
+              "AI-integrated applications"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://amiralibg.xyz/#website",
+            "url": "https://amiralibg.xyz/",
+            "name": "Amirali Beigi",
+            "description": "Interactive 3D portfolio of Amirali Beigi, Full-Stack Engineer.",
+            "inLanguage": "en",
+            "publisher": { "@id": "https://amiralibg.xyz/#person" }
+          },
+          {
+            "@type": "ProfilePage",
+            "@id": "https://amiralibg.xyz/#webpage",
+            "url": "https://amiralibg.xyz/",
+            "name": "Amirali Beigi — Full-Stack Engineer",
+            "isPartOf": { "@id": "https://amiralibg.xyz/#website" },
+            "about": { "@id": "https://amiralibg.xyz/#person" },
+            "mainEntity": { "@id": "https://amiralibg.xyz/#person" }
+          }
         ]
       }
     </script>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Last resort. If the module never executed — blocked, 404, a syntax the
+         browser refuses — #root is still empty here, and unclipping the resume
+         is the difference between a portfolio and a black rectangle. -->
+    <script>
+      setTimeout(function () {
+        if (!document.getElementById('root').firstChild) {
+          document.documentElement.classList.add('no-app')
+        }
+      }, 8000)
+    </script>
   </body>
 </html>
