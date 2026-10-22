@@ -242,3 +242,37 @@ export function XIcon(p: IconProps) {
     </Svg>
   )
 }
+
+/* ---------- menubar status glyphs (hand-drawn after the macOS ones) ---------- */
+
+/** Wi-Fi fan: three arcs over a dot, full signal. */
+export function WifiIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path
+        fill="currentColor"
+        d="M12 4.5c3.73 0 7.12 1.46 9.63 3.84a.9.9 0 0 1-.02 1.29l-.86.84a.9.9 0 0 1-1.24.01A11.06 11.06 0 0 0 12 7.5c-2.9 0-5.55 1.12-7.52 2.98a.9.9 0 0 1-1.23-.01l-.86-.84a.9.9 0 0 1-.02-1.29A13.96 13.96 0 0 1 12 4.5Zm0 5c2.36 0 4.5.92 6.09 2.42a.9.9 0 0 1 .01 1.29l-.87.85a.9.9 0 0 1-1.22.03A6.98 6.98 0 0 0 12 12.5c-1.55 0-2.98.5-4.01 1.59a.9.9 0 0 1-1.22-.03l-.87-.85a.9.9 0 0 1 .01-1.29A8.77 8.77 0 0 1 12 9.5Zm0 5c1.02 0 1.96.38 2.67 1.01a.9.9 0 0 1 .03 1.31l-2.06 2.03a.9.9 0 0 1-1.28 0L9.3 16.82a.9.9 0 0 1 .03-1.31A3.97 3.97 0 0 1 12 14.5Z"
+      />
+    </Svg>
+  )
+}
+
+/** Battery, mostly charged. Wider than tall, so it ignores the square grid. */
+export function BatteryIcon({ size = 24, ...rest }: IconProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={Number(size) * 1.25}
+      height={size}
+      viewBox="0 0 30 24"
+      fill="none"
+      aria-hidden
+      focusable="false"
+      {...rest}
+    >
+      <rect x="1.25" y="6.25" width="24" height="11.5" rx="3.25" stroke="currentColor" strokeOpacity="0.45" strokeWidth="1.5" />
+      <rect x="3.25" y="8.25" width="16" height="7.5" rx="1.6" fill="currentColor" />
+      <path d="M27 10v4c.83-.25 1.5-1.1 1.5-2s-.67-1.75-1.5-2Z" fill="currentColor" fillOpacity="0.45" />
+    </svg>
+  )
+}

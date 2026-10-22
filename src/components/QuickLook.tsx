@@ -55,8 +55,20 @@ export function QuickLook({ item: p, onClose }: { item: CaseStudy; onClose: () =
         </header>
         <div className="ql-content">
           <div className="ql-media">
+            {/* Sticky so the shot stays beside the text as a long case study
+                scrolls, instead of floating mid-column with its arrows pinned
+                to the far bottom. */}
+            <div className="ql-stage">
             {images.length > 0 ? (
-              <img src={images[idx]} alt={`${p.name} screenshot ${idx + 1}`} />
+              <a
+                className="ql-shot"
+                href={images[idx]}
+                target="_blank"
+                rel="noreferrer"
+                title="Open full size"
+              >
+                <img src={images[idx]} alt={`${p.name} screenshot ${idx + 1}`} />
+              </a>
             ) : (
               <CoverArt name={p.name} tagline={p.tagline} />
             )}
@@ -79,6 +91,7 @@ export function QuickLook({ item: p, onClose }: { item: CaseStudy; onClose: () =
                 </button>
               </div>
             )}
+            </div>
           </div>
           <div className="ql-info">
             <div className="ql-meta">
@@ -126,12 +139,17 @@ export function QuickLook({ item: p, onClose }: { item: CaseStudy; onClose: () =
 }
 
 function QuickLookLinks({ links }: { links?: CaseStudy['links'] }) {
-  if (!links?.live && !links?.github && !links?.docs) return null
+  if (!links?.live && !links?.github && !links?.docs && !links?.writeup) return null
   return (
     <div className="ql-links">
       {links.live && (
         <a className="ql-btn primary" href={links.live} target="_blank" rel="noreferrer">
           visit live <ArrowUpRightIcon size={13} />
+        </a>
+      )}
+      {links.writeup && (
+        <a className="ql-btn" href={links.writeup} target="_blank" rel="noreferrer">
+          why it exists <ArrowUpRightIcon size={13} />
         </a>
       )}
       {links.docs && (

@@ -48,6 +48,20 @@
   /* Neutral surfaces for elements that used to each carry their own hue. */
   --scr-raised: rgba(255, 255, 255, 0.05);
   --scr-line-strong: rgba(255, 255, 255, 0.18);
+  --scr-traffic-off: rgba(255, 255, 255, 0.16);
+  /* Fully opaque window fill for small panels floating over text, where the
+     97% one lets headings ghost through. */
+  --scr-panel: #1e1f28;
+  /* dock glass: no backdrop blur inside the 3D screen, so the fill is opaque
+     enough to hide wallpaper detail, the way the blur would */
+  --dock-glass: linear-gradient(180deg, rgba(86, 86, 94, 0.8), rgba(58, 58, 64, 0.84));
+  --dock-rim: rgba(255, 255, 255, 0.17);
+  --dock-edge: rgba(0, 0, 0, 0.45);
+  --dock-sep: rgba(255, 255, 255, 0.24);
+  --dock-dot: rgba(255, 255, 255, 0.82);
+  --dock-tip-bg: rgb(44, 44, 46);
+  --dock-tip-line: rgba(255, 255, 255, 0.2);
+  --dock-tip-ink: rgba(255, 255, 255, 0.9);
 }
 
 :root[data-theme="light"] {
@@ -79,6 +93,16 @@
   --scr-accent: #5b5bd6;
   --scr-raised: rgba(0, 0, 0, 0.04);
   --scr-line-strong: rgba(0, 0, 0, 0.2);
+  --scr-traffic-off: rgba(0, 0, 0, 0.14);
+  --scr-panel: #ffffff;
+  --dock-glass: linear-gradient(180deg, rgba(250, 250, 252, 0.66), rgba(236, 236, 240, 0.72));
+  --dock-rim: rgba(255, 255, 255, 0.6);
+  --dock-edge: rgba(0, 0, 0, 0.12);
+  --dock-sep: rgba(0, 0, 0, 0.16);
+  --dock-dot: rgba(0, 0, 0, 0.72);
+  --dock-tip-bg: rgb(236, 236, 236);
+  --dock-tip-line: rgba(0, 0, 0, 0.14);
+  --dock-tip-ink: rgba(0, 0, 0, 0.85);
 }
 
 html,
@@ -719,88 +743,187 @@ body {
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
 }
 
+/* The dock. Icons grow by width/height (driven from Dock.tsx), not by
+   transform: transforms inside the 3D screen get their own layers, which
+   Firefox clips square. Centred with auto margins for the same reason. */
 .dock {
+  --tile: 52px;
   position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 7px;
+  left: 0;
+  right: 0;
   z-index: 6;
   display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 7px 11px;
-  border-radius: 18px;
-  background: rgba(82, 84, 100, 0.78);
-  /* No backdrop-filter: this element lives inside the 3D-transformed
-     screen, whose matrix drei rewrites every frame, so the blur is
-     recomputed continuously. Opaque fill instead — visually the same at
-     this scale, and it costs nothing per frame. */
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  align-items: flex-end;
+  gap: 4px;
+  width: max-content;
+  /* Fixed shelf height: magnified icons overflow upward, out of the shelf,
+     like the real one. */
+  height: calc(var(--tile) + 10px);
+  margin-inline: auto;
+  padding: 5px 7px;
+}
+
+/* The glass shelf is its own layer under the icons so it can be clipped
+   (Firefox) without clipping the magnified icons and their labels. */
+.dock::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 20px;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E"),
+    var(--dock-glass);
+  box-shadow:
+    inset 0 0 0 1px var(--dock-rim),
+    0 0 0 0.5px var(--dock-edge),
+    0 10px 30px rgba(0, 0, 0, 0.22);
 }
 
 .dock-item {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
+  flex: none;
+  display: block;
+  width: var(--size, var(--tile));
+  height: var(--size, var(--tile));
+  padding: 0;
   border: none;
-  cursor: pointer;
-  color: rgba(255, 255, 255, 0.92);
-  background: rgba(24, 25, 32, 0.82);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  background: none;
+  cursor: default;
   transition:
-    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-    background 0.18s ease;
+    width 0.24s cubic-bezier(0.2, 0.8, 0.3, 1),
+    height 0.24s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
-.dock-item:hover {
-  transform: translateY(-7px) scale(1.12);
-  background: rgba(38, 39, 50, 0.92);
+/* While the pointer is over the dock the sizes follow it every frame; a
+   short ease only smooths the first step in. */
+.dock.magnifying .dock-item {
+  transition-duration: 0.06s;
 }
 
-.dock-item svg {
-  width: 22px;
-  height: 22px;
+.dock-item:focus-visible {
+  outline: none;
 }
 
-/* The Resume folder is the one thing in the dock that gets colour. */
-.dock-item:first-child {
-  color: #fff;
-  background: var(--scr-accent);
-  box-shadow: none;
+.dock-item:focus-visible .app-icon {
+  filter: brightness(0.82);
 }
 
-.dock-item:first-child:hover {
-  background: var(--scr-accent);
+.app-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-.dock-item:first-child svg {
-  width: 24px;
-  height: 24px;
+.dock-item:active .app-icon {
+  filter: brightness(0.7);
+}
+
+/* Launch hop: two bounces, settling. Only when an app opens from closed. */
+.dock-item.bounce {
+  animation: dock-bounce 0.9s cubic-bezier(0.3, 0, 0.4, 1);
+}
+
+@keyframes dock-bounce {
+  0%,
+  50%,
+  100% {
+    translate: 0 0;
+  }
+  22% {
+    translate: 0 -20px;
+  }
+  72% {
+    translate: 0 -10px;
+  }
+}
+
+/* Name bubble with a pointer, above the icon. The wide wrapper centres the
+   bubble without a transform. */
+.dock-label {
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: -80px;
+  right: -80px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.dock-label > span {
+  position: relative;
+  padding: 3px 10px 4px;
+  border-radius: 6px;
+  background: var(--dock-tip-bg);
+  box-shadow:
+    0 0 0 0.5px var(--dock-tip-line),
+    0 4px 14px rgba(0, 0, 0, 0.25);
+  color: var(--dock-tip-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  font-size: 13px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+/* The pointer: a hairline-coloured triangle with the fill one laid over it,
+   starting 1px up so it also covers the bubble's ring at its base. */
+.dock-label > span::before,
+.dock-label > span::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+.dock-label > span::before {
+  top: calc(100% - 0.5px);
+  width: 16px;
+  height: 8.5px;
+  margin-left: -8px;
+  background: var(--dock-tip-line);
+}
+
+.dock-label > span::after {
+  top: calc(100% - 1px);
+  width: 14px;
+  height: 8px;
+  margin-left: -7px;
+  background: var(--dock-tip-bg);
+}
+
+.dock-item:hover .dock-label {
+  visibility: visible;
 }
 
 .dock-sep {
+  flex: none;
+  align-self: center;
   width: 1px;
-  height: 30px;
-  background: rgba(255, 255, 255, 0.3);
+  height: calc(var(--tile) * 0.86);
+  margin: 0 5px;
+  background: var(--dock-sep);
 }
 
+/* Running-app indicator, in the shelf's bottom margin under the icon. */
 .dock-dot {
   position: absolute;
-  bottom: -5px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: -4.5px;
+  left: 0;
+  right: 0;
   width: 4px;
   height: 4px;
+  margin-inline: auto;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--dock-dot);
 }
 
 /* menubar */
 .menubar {
+  /* Above every window so the menus drop down over them. */
+  position: relative;
+  z-index: 30;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -816,18 +939,126 @@ body {
   flex-shrink: 0;
 }
 
-/* Stands where macOS puts the Apple logo. An SVG path, not the  character —
-   that glyph is an Apple-font private-use codepoint and renders as tofu on
-   every other platform. */
-.menubar-mark {
-  display: inline-flex;
+/* ---- menus (MacMenus.tsx) ---- */
+.mac-menus {
+  display: flex;
   align-items: center;
+  gap: 2px;
+  min-width: 0;
+  /* Pull the Apple mark back to where the old static one sat. */
+  margin-left: -8px;
+}
+
+.mac-menu {
+  position: relative;
+  min-width: 0;
+}
+
+.mac-menu-title {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 9px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  color: var(--scr-ink);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.mac-menu-title.bold {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mac-menu-title svg {
   /* The mark reads heavy at full strength next to the app name. */
   opacity: 0.92;
 }
 
-.menubar-app {
-  font-weight: 600;
+.mac-menu-title.open {
+  background: var(--scr-card-hover);
+}
+
+.mac-menu-panel {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-width: 230px;
+  padding: 5px;
+  border-radius: 10px;
+  background: var(--scr-panel);
+  box-shadow:
+    0 0 0 1px var(--scr-line-strong),
+    0 14px 38px rgba(0, 0, 0, 0.35);
+  font-size: 14px;
+}
+
+.mac-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px 0 4px;
+  border: none;
+  border-radius: 5px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: var(--scr-ink);
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* macOS highlights the hovered item in the system accent. */
+.mac-menu-item:hover:not(:disabled) {
+  background: var(--scr-accent);
+  color: #fff;
+}
+
+.mac-menu-item:disabled {
+  color: var(--scr-muted);
+  opacity: 0.6;
+}
+
+.mac-menu-check {
+  display: inline-flex;
+  width: 14px;
+  justify-content: center;
+}
+
+.mac-menu-label {
+  flex: 1;
+}
+
+.mac-menu-kbd {
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--scr-muted);
+}
+
+.mac-menu-item:hover:not(:disabled) .mac-menu-kbd {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.mac-menu-sep {
+  height: 1px;
+  margin: 5px 10px;
+  background: var(--scr-line-strong);
+  opacity: 0.6;
+}
+
+.menubar-status-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--scr-ink);
 }
 
 .menubar-spacer {
@@ -879,6 +1110,10 @@ body {
 .window.maximized {
   margin: 0px 0px 68px;
   translate: none !important; /* overrides the inline drag offset */
+  /* …and the inline size from a resize, which comes back on un-zoom. */
+  width: auto !important;
+  height: auto !important;
+  flex: 1 !important;
 }
 
 .window.opening {
@@ -930,19 +1165,47 @@ body {
   touch-action: none; /* draggable */
 }
 
+.traffic-group {
+  display: inline-flex;
+  gap: 9px;
+  flex-shrink: 0;
+}
+
 .traffic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 14px;
   height: 14px;
   border-radius: 50%;
   flex-shrink: 0;
   border: none;
   padding: 0;
-  cursor: pointer;
-  transition: filter 0.15s;
+  cursor: default;
 }
 
-.traffic:hover {
-  filter: brightness(1.25);
+/* Glyphs appear on all three at once when the pointer enters the group. */
+.traffic svg {
+  width: 8px;
+  height: 8px;
+  opacity: 0;
+  stroke: rgba(0, 0, 0, 0.6);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.traffic svg .fill {
+  stroke: none;
+  fill: rgba(0, 0, 0, 0.6);
+}
+
+.traffic-group:hover .traffic:not(:disabled) svg {
+  opacity: 1;
+}
+
+.traffic:active:not(:disabled) {
+  filter: brightness(0.8);
 }
 
 .traffic.red {
@@ -953,6 +1216,96 @@ body {
 }
 .traffic.green {
   background: #28c840;
+}
+
+/* A greyed light: disabled (About This Mac can't minimize or zoom), or every
+   light of a window that isn't frontmost — until you hover its group. */
+.traffic:disabled,
+.inactive .traffic-group:not(:hover) .traffic {
+  background: var(--scr-traffic-off);
+}
+
+/* ---- window stacking + resizing ---- */
+.window.front,
+.term-window.front,
+.about-mac.front {
+  z-index: 5;
+}
+
+/* Invisible grips just inside each edge; corners sit on top of edges. */
+.win-resize {
+  position: absolute;
+  z-index: 3;
+  touch-action: none;
+}
+
+.win-resize.n,
+.win-resize.s {
+  left: 10px;
+  right: 10px;
+  height: 6px;
+  cursor: ns-resize;
+}
+
+.win-resize.e,
+.win-resize.w {
+  top: 10px;
+  bottom: 10px;
+  width: 6px;
+  cursor: ew-resize;
+}
+
+.win-resize.n {
+  top: 0;
+}
+
+.win-resize.s {
+  bottom: 0;
+}
+
+.win-resize.e {
+  right: 0;
+}
+
+.win-resize.w {
+  left: 0;
+}
+
+.win-resize.ne,
+.win-resize.nw,
+.win-resize.se,
+.win-resize.sw {
+  z-index: 4;
+  width: 14px;
+  height: 14px;
+}
+
+.win-resize.ne {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+
+.win-resize.sw {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.win-resize.nw {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.win-resize.se {
+  bottom: 0;
+  right: 0;
+  cursor: nwse-resize;
+}
+
+.maximized > .win-resize {
+  display: none;
 }
 
 .tabs {
@@ -1031,7 +1384,9 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* `safe`: in a window resized shorter than the hero, plain centering pushes
+     the avatar above the scroll origin where it can never be reached. */
+  justify-content: safe center;
   text-align: center;
   height: 100%;
 }
@@ -1169,6 +1524,10 @@ body {
 }
 
 @media (hover: none) {
+  .dock-label {
+    display: none;
+  }
+
   .entry-cta {
     opacity: 0.85;
   }
@@ -1547,8 +1906,6 @@ body {
 
 .ql-media {
   position: relative;
-  display: flex;
-  align-items: center;
   padding: 22px;
   background: rgba(0, 0, 0, 0.25);
   border-right: 1px solid var(--scr-line);
@@ -1558,7 +1915,23 @@ body {
   background: rgba(0, 0, 0, 0.05);
 }
 
+.ql-stage {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.ql-shot {
+  display: block;
+  width: 100%;
+  cursor: zoom-in;
+}
+
 .ql-media img {
+  display: block;
   width: 100%;
   /* Unlike the cards, nothing is cropped here: this is the view someone opens
      to actually look at the thing. Tall captures get letterboxed instead. */
@@ -1569,10 +1942,6 @@ body {
 }
 
 .ql-nav {
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1830,7 +2199,86 @@ body {
 }
 
 .section.hire .contact-links {
+  margin-top: 14px;
+}
+
+/* ---- profile cards (hire-me tab): my face, the site's badge ---- */
+.profile-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
   margin-top: 30px;
+}
+
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px 10px 10px;
+  border-radius: 14px;
+  background: var(--scr-raised);
+  box-shadow: inset 0 0 0 1px var(--scr-line);
+  color: var(--scr-soft);
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
+}
+
+.profile-card:hover {
+  background: var(--scr-card-hover);
+  box-shadow: inset 0 0 0 1px var(--scr-line-strong);
+}
+
+.profile-avatar {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+}
+
+/* Black line art on white: needs its white plate in both themes. */
+.profile-avatar img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.profile-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: #111114;
+  color: #fff;
+  box-shadow: 0 0 0 2px var(--scr-window);
+}
+
+.profile-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-text b {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--scr-ink);
+}
+
+.profile-text i {
+  font-style: normal;
+  font-size: 12.5px;
+  color: var(--scr-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---------- Spotlight (⌘K) ---------- */
@@ -2153,9 +2601,107 @@ body {
   touch-action: none; /* draggable */
 }
 
-.term-titlebar .traffic.inert {
+.term-window.maximized {
+  inset: 0 0 68px !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  translate: none !important;
+  border-radius: 0;
+}
+
+/* ---- About This Mac ---- */
+.about-mac {
+  position: absolute;
+  top: 70px;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  z-index: 4;
+  width: 330px;
+  border-radius: 14px;
+  background: var(--scr-panel);
+  box-shadow:
+    0 0 0 1px var(--scr-line-strong),
+    0 24px 60px rgba(0, 0, 0, 0.45);
+  animation: term-open 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.about-mac-bar {
+  padding: 13px 14px 0;
+  touch-action: none; /* draggable */
+}
+
+.about-mac-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 26px 24px;
+  text-align: center;
+}
+
+/* Black line art on white: needs its white plate in both themes. */
+.about-mac-photo {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  background: #fff;
+  object-fit: cover;
+}
+
+.about-mac-name {
+  margin-top: 16px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.about-mac-model {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--scr-muted);
+}
+
+.about-mac-specs {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  margin: 20px 0 0;
+  font-size: 12.5px;
+}
+
+.about-mac-specs div {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 10px;
+  text-align: left;
+}
+
+.about-mac-specs dt {
+  text-align: right;
+  font-weight: 600;
+}
+
+.about-mac-specs dd {
+  margin: 0;
+  color: var(--scr-muted);
+}
+
+.about-mac-more {
+  margin-top: 20px;
+  padding: 5px 14px;
+  border: none;
+  border-radius: 7px;
+  background: var(--scr-card-hover);
+  box-shadow: inset 0 0 0 1px var(--scr-line);
+  font: inherit;
+  font-size: 13px;
+  color: var(--scr-ink);
   cursor: default;
-  opacity: 0.45;
+}
+
+.about-mac-more:hover {
+  background: var(--scr-line-strong);
 }
 
 .term-title {
@@ -2696,14 +3242,13 @@ body {
   gap: 10px;
 }
 
-.mobile-overlay .menubar-app,
 .mobile-overlay .menubar-clock {
   white-space: nowrap;
 }
 
-.mobile-overlay .menubar-app {
-  overflow: hidden;
-  text-overflow: ellipsis;
+.mobile-overlay .about-mac {
+  width: calc(100% - 24px);
+  max-width: 330px;
 }
 
 /* flex-centering a too-tall hero makes its top unreachable in a scroll
@@ -2726,11 +3271,19 @@ body {
   right: 12px;
 }
 
+/* On a phone the window spans the whole desktop, and its 97%-opaque fill lets
+   the white icon labels ghost through the content. They can't be clicked
+   under it anyway, so drop them while it's up. */
+.mobile-overlay .desktop:has(> .window:not(.minimized)) > .desktop-icon {
+  visibility: hidden;
+}
+
 .mobile-overlay .desktop-icon.pdf {
   top: 110px;
 }
 
 .mobile-overlay .dock {
+  --tile: 46px;
   bottom: 8px;
 }
 
@@ -2759,6 +3312,22 @@ body {
 
 .mobile-overlay .tabs {
   margin-left: 10px;
+}
+
+/* The five tabs don't fit a phone's width. Fade whichever edge has more
+   tabs past it (flags set in ResumeScreen) so the strip reads as scrollable
+   instead of clipped mid-word. A mask, not a colour — it only thins the
+   tabs' own pixels. */
+.mobile-overlay .tabs[data-more-right="true"] {
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+
+.mobile-overlay .tabs[data-more-left="true"] {
+  mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent);
+}
+
+.mobile-overlay .tabs[data-more-left="true"][data-more-right="true"] {
+  mask-image: linear-gradient(to right, transparent, #000 28px, #000 calc(100% - 28px), transparent);
 }
 
 .mobile-overlay .menubar-status {
@@ -2856,6 +3425,7 @@ body {
   .ql-close,
   .contact-links a,
   .traffic,
+  .profile-card,
   .theme-toggle,
   .avail-chip,
   .cmdk-hint,
@@ -2865,7 +3435,6 @@ body {
 
   .feat:hover,
   .proj-card:hover,
-  .dock-item:hover,
   .theme-toggle:hover,
   .avail-chip:hover {
     transform: none;
@@ -2881,7 +3450,8 @@ body {
   }
 
   /* the looping pulse ring keeps its layer alive — swap for a static dot */
-  .avail-dot {
+  .avail-dot,
+  .dock-item.bounce {
     animation: none;
   }
 
@@ -2906,6 +3476,14 @@ body {
   .avail-chip,
   .avail-chip:hover {
     border-color: transparent;
+  }
+
+  /* The shelf: clipped silhouette, ring drawn inside it. The outer shadow
+     goes with the clip. Magnified icons still snap to size here (their
+     width/height transition is frozen above). */
+  .dock::before {
+    clip-path: inset(0 round 20px);
+    box-shadow: inset 0 0 0 1px var(--dock-rim);
   }
 
   .feat {
@@ -3208,6 +3786,50 @@ body {
 
   .spotlight {
     padding-top: 9vh;
+  }
+}
+
+/* Phone intro: fills the empty band above a width-bound laptop. */
+.mobile-intro {
+  display: none;
+}
+
+@media (max-width: 820px) and (orientation: portrait) and (min-height: 600px) {
+  .mobile-intro {
+    position: fixed;
+    top: 15vh;
+    left: 20px;
+    right: 20px;
+    z-index: 20;
+    display: block;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .is-ready .mobile-intro {
+    animation: fade-up 0.9s ease 0.6s both;
+  }
+
+  .mobile-intro-name {
+    margin: 0;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: clamp(34px, 10vw, 46px);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+
+  .mobile-intro-line .nowrap {
+    white-space: nowrap;
+  }
+
+  .mobile-intro-line {
+    margin: 12px 0 0;
+    max-width: 30ch;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--muted);
   }
 }
 

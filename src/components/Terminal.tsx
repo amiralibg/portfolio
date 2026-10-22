@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useDraggable } from '../hooks/useDraggable'
+import { ResizeHandles, TrafficLights } from './WindowChrome'
 import { resume } from '../data/resume'
 import { projects } from '../data/projects'
 import { SECTIONS } from './sections'
@@ -8,6 +9,14 @@ import resumePdf from '../assets/Amirali Beigi - Resume.pdf'
 
 interface TerminalProps {
   onClose: () => void
+  onMinimize: () => void
+  /** Hidden in the dock: stays mounted so the session and history survive. */
+  minimized: boolean
+  /** Frontmost window — the other one greys its traffic lights. */
+  active: boolean
+  onActivate: () => void
+  /** The phone overlay has no mouse to resize with. */
+  resizable: boolean
   onOpenTab: (id: SectionId) => void
   onOpenProject: (slug: string) => void
   onOpenJob: (slug: string) => void
@@ -39,7 +48,17 @@ const HELP: Line[] = [
 
 /** Fake zsh session in a second macOS window — content comes from the resume
  *  and project data, so it can never drift from the real site. */
-export function Terminal({ onClose, onOpenTab, onOpenProject, onOpenJob }: TerminalProps) {
+export function Terminal({
+  onClose,
+  onMinimize,
+  minimized,
+  active,
+  onActivate,
+  resizable,
+  onOpenTab,
+  onOpenProject,
+  onOpenJob,
+}: TerminalProps) {
   const [lines, setLines] = useState<Line[]>(() => [
     out(`Last login: ${new Date().toDateString()} on ttys001`),
     out("Welcome — type 'help' to see what I can do."),
@@ -49,11 +68,16 @@ export function Terminal({ onClose, onOpenTab, onOpenProject, onOpenJob }: Termi
   const histIdx = useRef(-1)
   const bodyRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
-  const { targetRef: dragRef, onTitlePointerDown } = useDraggable()
+  const { targetRef: dragRef, onTitlePointerDown, onResizePointerDown } = useDraggable({
+    minWidth: 360,
+    minHeight: 200,
+  })
+  const [maximized, setMaximized] = useState(false)
 
+  // Focus the prompt on open, and again whenever it comes back from the dock.
   useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
+    if (!minimized) inputRef.current?.focus()
+  }, [minimized])
 
   useEffect(() => {
     const el = bodyRef.current
@@ -216,14 +240,26 @@ export function Terminal({ onClose, onOpenTab, onOpenProject, onOpenJob }: Termi
   return (
     <div
       ref={dragRef}
-      className="term-window"
+      className={`term-window${active ? ' front' : ' inactive'}${maximized ? ' maximized' : ''}`}
+      style={minimized ? { display: 'none' } : undefined}
+      onPointerDownCapture={onActivate}
       onWheel={(e) => e.stopPropagation()}
       onTouchMove={(e) => e.stopPropagation()}
     >
-      <div className="term-titlebar" onPointerDown={onTitlePointerDown}>
-        <button className="traffic red" onClick={onClose} aria-label="Close terminal" />
-        <span className="traffic yellow inert" />
-        <span className="traffic green inert" />
+      {resizable && <ResizeHandles onResize={onResizePointerDown} />}
+      <div
+        className="term-titlebar"
+        onPointerDown={onTitlePointerDown}
+        onDoubleClick={(e) => {
+          if (!(e.target as Element).closest('button')) setMaximized((m) => !m)
+        }}
+      >
+        <TrafficLights
+          label="terminal"
+          onClose={onClose}
+          onMinimize={onMinimize}
+          onZoom={() => setMaximized((m) => !m)}
+        />
         <span className="term-title">
           {resume.name.split(' ')[0].toLowerCase()}@portfolio — zsh
         </span>

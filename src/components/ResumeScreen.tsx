@@ -7,11 +7,25 @@ import { Projects } from './Projects'
 import { QuickLook } from './QuickLook'
 import { ContactForm } from './ContactForm'
 import { Terminal } from './Terminal'
+import { AboutThisMac } from './AboutThisMac'
+import { MacMenus } from './MacMenus'
+import type { Menu } from './MacMenus'
+import { ResizeHandles, TrafficLights } from './WindowChrome'
+import { Dock, DockItem, DockSeparator } from './Dock'
+import {
+  GitHubAppIcon,
+  LinkedInAppIcon,
+  MailAppIcon,
+  ResumeAppIcon,
+  TerminalAppIcon,
+  XAppIcon,
+} from './AppIcons'
 import { SECTIONS } from './sections'
 import type { SectionId } from './sections'
 import {
   AppleIcon,
   ArrowUpRightIcon,
+  BatteryIcon,
   CheckIcon,
   CloseIcon,
   CopyIcon,
@@ -19,12 +33,11 @@ import {
   FolderIcon,
   GitHubIcon,
   LinkedInIcon,
-  MailIcon,
   MoonIcon,
   PdfIcon,
   SearchIcon,
   SunIcon,
-  TerminalIcon,
+  WifiIcon,
   XIcon,
 } from './icons'
 import wallpaper from '../assets/background.webp'
@@ -32,8 +45,23 @@ import resumePdf from '../assets/Amirali Beigi - Resume.pdf'
 import avatar from '../assets/amirali.jpg'
 
 const PDF_FILENAME = `${resume.name} - Resume.pdf`
+/** This site's own repo, for Help → View Source. */
+const SOURCE_URL = 'https://github.com/amiralibg/portfolio'
 
 type WinState = 'open' | 'closing' | 'closed' | 'minimizing' | 'minimized' | 'opening'
+type TermState = 'closed' | 'open' | 'minimized'
+/** Which window is frontmost — the others grey their traffic lights. */
+type WinId = 'resume' | 'terminal' | 'about'
+
+const handleOf = (url: string) => url.split('/').filter(Boolean).pop() ?? ''
+
+/** The social profiles: app tiles in the dock, "me on <platform>" cards
+ *  (avatar plus a brand badge) on the hire-me tab. */
+const PROFILES = [
+  { platform: 'GitHub', url: resume.links.github, Icon: GitHubIcon, AppIcon: GitHubAppIcon },
+  { platform: 'LinkedIn', url: resume.links.linkedin, Icon: LinkedInIcon, AppIcon: LinkedInAppIcon },
+  { platform: 'X', url: resume.links.x, Icon: XIcon, AppIcon: XAppIcon },
+]
 
 interface ResumeScreenProps {
   zoomed: boolean
@@ -81,12 +109,17 @@ export function ResumeScreen({
     (id: SectionId) => (onSectionChange ?? setInternalSection)(id),
     [onSectionChange],
   )
-  const [time, setTime] = useState(() => formatTime())
+  const isScreen = variant === 'screen'
+  const [time, setTime] = useState(() => formatClock(isScreen))
   const [winState, setWinState] = useState<WinState>('open')
   const [maximized, setMaximized] = useState(false)
-  const [termOpen, setTermOpen] = useState(false)
-  const { targetRef: winDragRef, onTitlePointerDown } = useDraggable()
+  const [termState, setTermState] = useState<TermState>('closed')
+  const [aboutOpen, setAboutOpen] = useState(false)
+  const [front, setFront] = useState<WinId>('resume')
+  const [bounce, setBounce] = useState<'resume' | 'terminal' | null>(null)
+  const { targetRef: winDragRef, onTitlePointerDown, onResizePointerDown } = useDraggable()
   const winTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const bounceTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const windowVisible = winState !== 'closed' && winState !== 'minimized'
 
@@ -98,12 +131,173 @@ export function ResumeScreen({
 
   const closeWindow = () => windowVisible && transition('closing', 'closed', 280)
   const minimizeWindow = () => windowVisible && transition('minimizing', 'minimized', 400)
+  // The dock icon hops while an app launches from closed — not when a
+  // minimized window is merely restored, same as macOS.
+  const launch = (app: 'resume' | 'terminal') => {
+    clearTimeout(bounceTimer.current)
+    setBounce(app)
+    bounceTimer.current = setTimeout(() => setBounce(null), 900)
+  }
   const openWindow = () => {
+    setFront('resume')
     if (winState === 'open' || winState === 'opening') return
+    if (winState === 'closed') launch('resume')
     transition('opening', 'open', 360)
   }
+  // Clicking a running app's dock icon brings it forward; it never quits it.
+  const openTerminal = () => {
+    setFront('terminal')
+    if (termState === 'closed') launch('terminal')
+    setTermState('open')
+  }
+  const closeTerminal = () => {
+    setTermState('closed')
+    setFront('resume')
+  }
+  const closeAbout = () => {
+    setAboutOpen(false)
+    setFront('resume')
+  }
+  const goTo = (id: SectionId) => {
+    openWindow()
+    setSection(id)
+  }
 
-  useEffect(() => () => clearTimeout(winTimer.current), [])
+  // A stale `front` (its window since closed) must not leave every window
+  // looking inactive, so each one checks the others are actually up.
+  const termActive = front === 'terminal' && termState === 'open'
+  const aboutActive = front === 'about' && aboutOpen
+  const resumeActive = !termActive && !aboutActive
+
+  const closeFront = () => {
+    if (aboutActive) closeAbout()
+    else if (termActive) closeTerminal()
+    else closeWindow()
+  }
+  const minimizeFront = () => {
+    if (termActive) {
+      setTermState('minimized')
+      setFront('resume')
+    } else minimizeWindow()
+  }
+
+  const downloadResume = () => {
+    const a = document.createElement('a')
+    a.href = resumePdf
+    a.download = PDF_FILENAME
+    a.click()
+  }
+
+  const appleMenu: Menu = {
+    id: 'apple',
+    title: <AppleIcon size={14} />,
+    ariaLabel: 'Apple menu',
+    items: [
+      {
+        label: 'About This Mac',
+        onSelect: () => {
+          setAboutOpen(true)
+          setFront('about')
+        },
+      },
+      'sep',
+      { label: 'Download Résumé…', onSelect: downloadResume },
+      {
+        label: theme === 'dark' ? 'Switch to Light Appearance' : 'Switch to Dark Appearance',
+        onSelect: onToggleTheme,
+      },
+      'sep',
+      { label: 'Contact Amirali…', onSelect: () => goTo('hire') },
+    ],
+  }
+  const appMenu: Menu = {
+    id: 'app',
+    // The phone overlay has no room for the long title; it only ever
+    // truncated to "Amirali Bei…".
+    title: !windowVisible ? 'Finder' : isScreen ? `${resume.name} — Resume` : 'Resume',
+    bold: true,
+    items: [
+      ...(windowVisible ? [] : [{ label: 'Open Resume', onSelect: openWindow }, 'sep' as const]),
+      { label: `About ${resume.name.split(' ')[0]}`, onSelect: () => goTo('about') },
+      { label: 'Hire Me…', onSelect: () => goTo('hire') },
+      'sep',
+      { label: 'Hide Resume', onSelect: minimizeWindow, disabled: !windowVisible },
+      { label: 'Quit Resume', onSelect: closeWindow, disabled: !windowVisible },
+    ],
+  }
+  // File / View / Window / Help only where there's a menubar wide enough for
+  // them — the phone overlay keeps the Apple and app menus.
+  const fullMenus: Menu[] = [
+    {
+      id: 'file',
+      title: 'File',
+      items: [
+        { label: 'New Terminal Window', onSelect: openTerminal },
+        { label: 'Download resume.pdf', onSelect: downloadResume },
+        'sep',
+        {
+          label: 'Close Window',
+          onSelect: closeFront,
+          disabled: !windowVisible && !termActive && !aboutActive,
+        },
+      ],
+    },
+    {
+      id: 'view',
+      title: 'View',
+      items: [
+        ...SECTIONS.map((sec) => ({
+          // Menus are Title Case; the tab labels are lowercase + CSS-capitalized.
+          label: sec.label.replace(/\b\w/g, (c) => c.toUpperCase()),
+          checked: windowVisible && sec.id === section,
+          onSelect: () => goTo(sec.id),
+        })),
+        'sep',
+        ...(onOpenSpotlight ? [{ label: 'Search…', shortcut: '⌘K', onSelect: onOpenSpotlight }] : []),
+        {
+          label: maximized ? 'Exit Full Screen' : 'Enter Full Screen',
+          onSelect: () => setMaximized((m) => !m),
+          disabled: !windowVisible,
+        },
+      ],
+    },
+    {
+      id: 'window',
+      title: 'Window',
+      items: [
+        { label: 'Minimize', onSelect: minimizeFront, disabled: !windowVisible && !termActive },
+        { label: 'Zoom', onSelect: () => setMaximized((m) => !m), disabled: !windowVisible },
+        'sep',
+        { label: 'Resume', checked: resumeActive && windowVisible, onSelect: openWindow },
+        ...(termState !== 'closed'
+          ? [{ label: 'Terminal', checked: termActive, onSelect: openTerminal }]
+          : []),
+        ...(aboutOpen
+          ? [{ label: 'About This Mac', checked: aboutActive, onSelect: () => setFront('about') }]
+          : []),
+      ],
+    },
+    {
+      id: 'help',
+      title: 'Help',
+      items: [
+        {
+          label: 'View Source on GitHub',
+          onSelect: () => window.open(SOURCE_URL, '_blank', 'noopener'),
+        },
+        { label: `Email ${resume.name.split(' ')[0]}`, onSelect: () => (window.location.href = `mailto:${resume.email}`) },
+      ],
+    },
+  ]
+  const menus = isScreen ? [appleMenu, appMenu, ...fullMenus] : [appleMenu, appMenu]
+
+  useEffect(
+    () => () => {
+      clearTimeout(winTimer.current)
+      clearTimeout(bounceTimer.current)
+    },
+    [],
+  )
 
   // Keep the active tab visible when the tab bar overflows (narrow screens):
   // whenever the section changes, glide the tab strip so the tab sits centered.
@@ -119,10 +313,31 @@ export function ResumeScreen({
     nav.scrollTo({ left, behavior: 'smooth' })
   }, [section, windowVisible])
 
+  // Mark which edges of the tab strip hide more tabs, so CSS can fade just
+  // those edges. Written straight to the element: scroll fires per frame and
+  // nothing else needs to re-render for it.
   useEffect(() => {
-    const id = setInterval(() => setTime(formatTime()), 30_000)
+    const nav = tabsRef.current
+    if (!nav) return
+    const update = () => {
+      const max = nav.scrollWidth - nav.clientWidth
+      nav.dataset.moreLeft = String(nav.scrollLeft > 2)
+      nav.dataset.moreRight = String(nav.scrollLeft < max - 2)
+    }
+    update()
+    nav.addEventListener('scroll', update, { passive: true })
+    const ro = new ResizeObserver(update)
+    ro.observe(nav)
+    return () => {
+      nav.removeEventListener('scroll', update)
+      ro.disconnect()
+    }
+  }, [windowVisible])
+
+  useEffect(() => {
+    const id = setInterval(() => setTime(formatClock(isScreen)), 30_000)
     return () => clearInterval(id)
-  }, [])
+  }, [isScreen])
 
   // Arrow keys flip between sections while zoomed in
   useEffect(() => {
@@ -150,10 +365,7 @@ export function ResumeScreen({
         {/* Where macOS puts the Apple logo — drawn as SVG, not the ""
             character, which is a private-use glyph that only resolves in Apple
             system fonts and shows as tofu everywhere else. */}
-        <span className="menubar-mark" aria-hidden>
-          <AppleIcon size={14} />
-        </span>
-        <span className="menubar-app">{windowVisible ? `${resume.name} — Resume` : 'Finder'}</span>
+        <MacMenus menus={menus} />
         <span className="menubar-spacer" />
         {onOpenSpotlight && (
           <button
@@ -181,6 +393,12 @@ export function ResumeScreen({
         <button className="menubar-toggle" onClick={onToggleTheme} aria-label="Toggle theme">
           {theme === 'dark' ? <SunIcon size={15} /> : <MoonIcon size={15} />}
         </button>
+        {isScreen && (
+          <span className="menubar-status-icons" aria-hidden>
+            <WifiIcon size={16} />
+            <BatteryIcon size={17} />
+          </span>
+        )}
         <span className="menubar-clock">{time}</span>
       </div>
 
@@ -231,20 +449,26 @@ export function ResumeScreen({
         {winState !== 'closed' && (
           <div
             ref={winDragRef}
-            className={`window ${winState}${maximized ? ' maximized' : ''}`}
+            className={`window ${winState}${maximized ? ' maximized' : ''}${resumeActive ? ' front' : ' inactive'}`}
             style={winState === 'minimized' ? { display: 'none' } : undefined}
+            onPointerDownCapture={() => setFront('resume')}
           >
-            <div className="window-titlebar" onPointerDown={onTitlePointerDown}>
-              <button className="traffic red" onClick={closeWindow} aria-label="Close window" />
-              <button
-                className="traffic yellow"
-                onClick={minimizeWindow}
-                aria-label="Minimize window"
-              />
-              <button
-                className="traffic green"
-                onClick={() => setMaximized((m) => !m)}
-                aria-label="Maximize window"
+            {isScreen && <ResizeHandles onResize={onResizePointerDown} />}
+            <div
+              className="window-titlebar"
+              onPointerDown={onTitlePointerDown}
+              onDoubleClick={(e) => {
+                // macOS: double-clicking a title bar zooms the window.
+                if (isScreen && !(e.target as Element).closest('button, .tab')) {
+                  setMaximized((m) => !m)
+                }
+              }}
+            >
+              <TrafficLights
+                label="window"
+                onClose={closeWindow}
+                onMinimize={minimizeWindow}
+                onZoom={() => setMaximized((m) => !m)}
               />
               <nav className="tabs" ref={tabsRef}>
                 {SECTIONS.map((s) => (
@@ -285,9 +509,17 @@ export function ResumeScreen({
           </div>
         )}
 
-        {termOpen && (
+        {termState !== 'closed' && (
           <Terminal
-            onClose={() => setTermOpen(false)}
+            onClose={closeTerminal}
+            onMinimize={() => {
+              setTermState('minimized')
+              setFront('resume')
+            }}
+            minimized={termState === 'minimized'}
+            active={termActive}
+            onActivate={() => setFront('terminal')}
+            resizable={isScreen}
             onOpenTab={setSection}
             onOpenProject={(slug) => {
               setSection('projects')
@@ -300,52 +532,47 @@ export function ResumeScreen({
           />
         )}
 
-        <div className="dock">
-          <button className="dock-item" onClick={openWindow} title="Resume" aria-label="Open Resume">
-            <FolderIcon />
-            {winState !== 'closed' && <i className="dock-dot" />}
-          </button>
-          <button
-            className="dock-item"
-            onClick={() => setTermOpen((v) => !v)}
-            title="Terminal"
-            aria-label="Toggle Terminal"
-          >
-            <TerminalIcon />
-            {termOpen && <i className="dock-dot" />}
-          </button>
-          <span className="dock-sep" />
-          <a
-            className="dock-item"
-            href={resume.links.github}
-            target="_blank"
-            rel="noreferrer"
-            title="GitHub"
-          >
-            <GitHubIcon />
-          </a>
-          <a
-            className="dock-item"
-            href={resume.links.linkedin}
-            target="_blank"
-            rel="noreferrer"
-            title="LinkedIn"
-          >
-            <LinkedInIcon />
-          </a>
-          <a
-            className="dock-item"
-            href={resume.links.x}
-            target="_blank"
-            rel="noreferrer"
-            title="X"
-          >
-            <XIcon />
-          </a>
-          <a className="dock-item" href={`mailto:${resume.email}`} title="Email">
-            <MailIcon />
-          </a>
-        </div>
+        {aboutOpen && (
+          <AboutThisMac
+            onClose={closeAbout}
+            active={aboutActive}
+            onActivate={() => setFront('about')}
+            onMoreInfo={() => {
+              closeAbout()
+              goTo('about')
+            }}
+          />
+        )}
+
+        <Dock magnify={isScreen}>
+          <DockItem
+            label="Resume"
+            ariaLabel="Open Resume"
+            icon={<ResumeAppIcon />}
+            running={winState !== 'closed'}
+            bouncing={bounce === 'resume'}
+            onClick={openWindow}
+          />
+          <DockItem
+            label="Terminal"
+            ariaLabel="Open Terminal"
+            icon={<TerminalAppIcon />}
+            running={termState !== 'closed'}
+            bouncing={bounce === 'terminal'}
+            onClick={openTerminal}
+          />
+          <DockItem label="Mail" ariaLabel="Email" icon={<MailAppIcon />} href={`mailto:${resume.email}`} />
+          <DockSeparator />
+          {PROFILES.map(({ platform, url, AppIcon }) => (
+            <DockItem
+              key={platform}
+              label={platform}
+              ariaLabel={`${resume.name} on ${platform}`}
+              icon={<AppIcon />}
+              href={url}
+            />
+          ))}
+        </Dock>
       </div>
     </div>
   )
@@ -480,20 +707,28 @@ function HireMe() {
       <h4 className="sub-title">get in touch</h4>
       <ContactForm />
 
+      <div className="profile-links">
+        {PROFILES.map(({ platform, url, Icon }) => (
+          <a className="profile-card" key={platform} href={url} target="_blank" rel="noreferrer me">
+            <span className="profile-avatar">
+              <img src={avatar} alt="" width={40} height={40} />
+              <span className="profile-badge">
+                <Icon size={11} />
+              </span>
+            </span>
+            <span className="profile-text">
+              <b>{platform}</b>
+              <i>@{handleOf(url)}</i>
+            </span>
+            <ArrowUpRightIcon size={13} />
+          </a>
+        ))}
+      </div>
+
       <div className="contact-links">
         <CopyEmail />
         <a href={resumePdf} download={PDF_FILENAME}>
           <DownloadIcon size={14} /> resume.pdf
-        </a>
-        <a href={resume.links.github} target="_blank" rel="noreferrer">
-          <GitHubIcon size={14} /> GitHub
-        </a>
-        <a href={resume.links.linkedin} target="_blank" rel="noreferrer">
-          <LinkedInIcon size={14} /> LinkedIn
-        </a>
-        <a href={resume.links.x} target="_blank" rel="noreferrer">
-          {/* The handle, not "X" — the icon already says which platform. */}
-          <XIcon size={14} /> @{resume.links.x.split('/').pop()}
         </a>
       </div>
     </div>
@@ -528,8 +763,15 @@ function CopyEmail() {
   )
 }
 
-function formatTime() {
-  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+/** macOS menubar clock: "Tue Oct 21  9:41 PM" with room, just the time without. */
+function formatClock(withDate: boolean) {
+  const now = new Date()
+  const time = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  if (!withDate) return time
+  const date = now
+    .toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+    .replace(/,/g, '')
+  return `${date}  ${time}`
 }
 
 /* Re-exported so App.tsx keeps importing its theme icons from one place. */

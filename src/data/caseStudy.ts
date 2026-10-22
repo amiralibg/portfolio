@@ -12,6 +12,8 @@ export interface CaseStudyLinks {
   live?: string
   github?: string
   docs?: string
+  /** A longer piece on the why — rendered as "why it exists". */
+  writeup?: string
 }
 
 export interface CaseStudy {

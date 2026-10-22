@@ -117,6 +117,18 @@ export default function App() {
     el.style.pointerEvents = e > 0.98 ? 'auto' : 'none'
   }, [])
 
+  // The scrub overlay only mounts once the loader reveals, which is the same
+  // tick a deep link calls openAt — so applyIntro(1) runs against a null ref
+  // and the modal stays at opacity 0 over a "open" state. Re-apply whatever
+  // progress we're at the moment the element attaches.
+  const attachModal = useCallback(
+    (el: HTMLDivElement | null) => {
+      modalRef.current = el
+      if (el) applyIntro(zoomProgressRef.current)
+    },
+    [applyIntro],
+  )
+
   const exitScroll = useCallback(() => {
     zoomProgressRef.current = 0
     applyIntro(0)
@@ -450,6 +462,24 @@ export default function App() {
         </div>
       </header>
 
+      {/* Portrait phones only (CSS): the laptop is width-bound there, which
+          leaves the top half of the screen empty — and the name never appears
+          in readable type until the resume opens. */}
+      {(scrollActive || mobileScrollActive ? !engaged : !zoomed) && (
+        <div className="mobile-intro ui">
+          <p className="mobile-intro-name">{resume.name}</p>
+          <p className="mobile-intro-line">
+            {/* Wrap between items, never inside one ("AI-|integrated"). */}
+            {resume.tagline.split(' • ').map((item, i) => (
+              <span key={item}>
+                {i > 0 && ' • '}
+                <span className="nowrap">{item}</span>
+              </span>
+            ))}
+          </p>
+        </div>
+      )}
+
       <span className="corner bl ui ui-fade">{resume.title}</span>
       <span className="corner br ui ui-fade">© {new Date().getFullYear()}</span>
 
@@ -525,7 +555,7 @@ export default function App() {
 
       {/* Mobile scroll mode: always mounted, scaled open by the scroll scrub. */}
       {mobileScrollActive && ready && (
-        <div className="mobile-overlay scroll-scrub" ref={modalRef}>
+        <div className="mobile-overlay scroll-scrub" ref={attachModal}>
           <ResumeScreen
             zoomed={engaged}
             theme={theme}

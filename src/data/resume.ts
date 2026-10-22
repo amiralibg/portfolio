@@ -25,7 +25,7 @@ export const resume = {
   links: {
     github: 'https://github.com/amiralibg',
     linkedin: 'https://linkedin.com/in/amiralibeigi',
-    x: 'https://x.com/_amiralibg',
+    x: 'https://x.com/_amiralibgi',
   },
   // Flip `open` to false to switch the whole site (menubar status, header
   // chip, hire-me banner) to a neutral "open to interesting work" state.
@@ -269,9 +269,10 @@ export const resume = {
   ] satisfies ExperienceItem[],
   skills: [
     { group: 'Frontend', items: ['React.js', 'Next.js', 'Vue.js', 'Nuxt.js', 'React Native'] },
-    { group: 'Languages', items: ['TypeScript', 'JavaScript', 'HTML', 'CSS', 'Dart'] },
+    { group: 'Languages', items: ['TypeScript', 'JavaScript', 'Swift', 'Rust', 'Kotlin', 'HTML', 'CSS'] },
     { group: 'UI & Styling', items: ['TailwindCSS', 'shadcn/ui', 'SCSS', 'Material UI', 'Framer Motion'] },
     { group: 'State & Data', items: ['Zustand', 'Redux', 'TanStack Query'] },
+    { group: 'Native & Desktop', items: ['SwiftUI', 'AppKit', 'WebKit', 'Tauri', 'Jetpack Compose'] },
     { group: 'Backend & Infra', items: ['Node.js', 'Express.js', 'MongoDB', 'Supabase', 'Docker', 'CI/CD'] },
     {
       group: 'AI & Modern Tooling',
